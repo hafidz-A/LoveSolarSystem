@@ -45,7 +45,7 @@ const CARD_DATA = [
     borderColor: 'rgba(255, 77, 109, 0.35)',
     doubleBorderColor: 'rgba(255, 77, 109, 0.22)',
     flowerColors: ['#ff0a54', '#ff477e', '#ff7096'],
-    message: 'A special question just for you... 💌',
+    message: 'In this vast universe, you are my brightest star and my favorite place to be. I love you so much. Will you be mine? ✨💖',
     hasPhoto: false,
     isConfession: true
   },
