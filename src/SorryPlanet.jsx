@@ -27,7 +27,7 @@ const MILESTONE_MSGS = {
 const LETTER_PARAGRAPHS = [
   'To my dearest,',
   "I'm sorry for being such a silly boyfriend — and a silly future husband, too. I'm sorry for the times I made you sad and left your little heart aching.",
-  "I'm sorry for today, and for tomorrow if I ever get things wrong again — we're only human, and humans make so many mistakes. But I promise to keep becoming a better man, day by day — especially for my beloved girlfriend, my future wife.",
+  "I'm sorry for today, and for tomorrow if I ever get things wrong again. I won't hide behind excuses — every time I fall short, I'll own it, learn from it, and love you better because of it. I promise to keep becoming a better man, day by day — especially for my beloved girlfriend, my future wife.",
 ]
 const LETTER_SIGNATURE = '— your future husband ♡'
 
