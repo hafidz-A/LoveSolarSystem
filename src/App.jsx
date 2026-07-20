@@ -790,9 +790,12 @@ function createCloudTexture() {
 
 // Pink flower texture for the Sorry Planet
 function createSorryPlanetTexture() {
+  // Drawn ONCE into a canvas and uploaded once to the GPU — flower count
+  // here costs nothing at runtime. Higher resolution keeps the denser
+  // meadow crisp on the sphere.
   const canvas = document.createElement('canvas')
-  canvas.width = 512
-  canvas.height = 256
+  canvas.width = 1024
+  canvas.height = 512
   const ctx = canvas.getContext('2d')
 
   // Soft pink base with vertical shading
@@ -804,8 +807,8 @@ function createSorryPlanetTexture() {
   ctx.fillRect(0, 0, canvas.width, canvas.height)
 
   // Lighter meadow patches
-  for (let i = 0; i < 14; i++) {
-    const r = 18 + Math.random() * 40
+  for (let i = 0; i < 22; i++) {
+    const r = 36 + Math.random() * 80
     const x = Math.random() * canvas.width
     const y = Math.random() * canvas.height
     ctx.fillStyle = 'rgba(255, 224, 235, 0.5)'
@@ -830,23 +833,50 @@ function createSorryPlanetTexture() {
     ctx.arc(x, y, size * 0.45, 0, Math.PI * 2)
     ctx.fill()
   }
-  for (let i = 0; i < 46; i++) {
+  // Small five-dot blossom sprinkled between the big flowers
+  const drawBlossom = (x, y, size, color) => {
+    ctx.fillStyle = color
+    for (let p = 0; p < 4; p++) {
+      const a = (p / 4) * Math.PI * 2 + Math.PI / 4
+      ctx.beginPath()
+      ctx.arc(x + Math.cos(a) * size * 0.6, y + Math.sin(a) * size * 0.6, size * 0.42, 0, Math.PI * 2)
+      ctx.fill()
+    }
+    ctx.fillStyle = '#fffdf7'
+    ctx.beginPath()
+    ctx.arc(x, y, size * 0.3, 0, Math.PI * 2)
+    ctx.fill()
+  }
+  const pickColor = () => (Math.random() < 0.68
+    ? pinks[Math.floor(Math.random() * pinks.length)]
+    : accents[Math.floor(Math.random() * accents.length)])
+
+  // A much fuller meadow: big doodle flowers…
+  for (let i = 0; i < 150; i++) {
     const x = Math.random() * canvas.width
-    const y = 12 + Math.random() * (canvas.height - 24)
-    const size = 4 + Math.random() * 7
-    const color = Math.random() < 0.68
-      ? pinks[Math.floor(Math.random() * pinks.length)]
-      : accents[Math.floor(Math.random() * accents.length)]
+    const y = 24 + Math.random() * (canvas.height - 48)
+    const size = 8 + Math.random() * 14
+    const color = pickColor()
     drawFlower(x, y, size, color)
-    if (x < 20) drawFlower(x + canvas.width, y, size, color)
-    if (x > canvas.width - 20) drawFlower(x - canvas.width, y, size, color)
+    if (x < 40) drawFlower(x + canvas.width, y, size, color)
+    if (x > canvas.width - 40) drawFlower(x - canvas.width, y, size, color)
+  }
+  // …plus little blossoms filling the gaps
+  for (let i = 0; i < 110; i++) {
+    const x = Math.random() * canvas.width
+    const y = 16 + Math.random() * (canvas.height - 32)
+    const size = 4 + Math.random() * 6
+    const color = pickColor()
+    drawBlossom(x, y, size, color)
+    if (x < 30) drawBlossom(x + canvas.width, y, size, color)
+    if (x > canvas.width - 30) drawBlossom(x - canvas.width, y, size, color)
   }
 
   // Tiny greenery dots
   ctx.fillStyle = 'rgba(106, 168, 112, 0.55)'
-  for (let i = 0; i < 60; i++) {
+  for (let i = 0; i < 150; i++) {
     ctx.beginPath()
-    ctx.arc(Math.random() * canvas.width, Math.random() * canvas.height, 1.5 + Math.random() * 2, 0, Math.PI * 2)
+    ctx.arc(Math.random() * canvas.width, Math.random() * canvas.height, 3 + Math.random() * 4, 0, Math.PI * 2)
     ctx.fill()
   }
 
@@ -986,11 +1016,13 @@ function SolarSystem({ visible, focus = 0 }) {
     if (ourCloudsMeshRef.current) {
       ourCloudsMeshRef.current.rotation.y += 0.003
     }
+    // Sorry Planet spins extra slowly — easy on the eyes while she
+    // spends a long time on this planet
     if (sorryMeshRef.current) {
-      sorryMeshRef.current.rotation.y += 0.0022
+      sorryMeshRef.current.rotation.y += 0.0009
     }
     if (sorryCloudsMeshRef.current) {
-      sorryCloudsMeshRef.current.rotation.y += 0.0032
+      sorryCloudsMeshRef.current.rotation.y += 0.0013
     }
 
     if (!systemRef.current) return
