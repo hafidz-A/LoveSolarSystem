@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&family=Caveat:wght@400;600;700&display=swap');
 
 @import "tailwindcss";
 
@@ -15,6 +15,7 @@
   --color-neutral-dark: #1a0010;
   --font-family-display: 'Playfair Display', serif;
   --font-family-romantic: 'Cormorant Garamond', serif;
+  --font-family-hand: 'Caveat', cursive;
 }
 
 * {
@@ -1010,3 +1011,258 @@ body {
 }
 
 
+
+/* ============================================================
+   SORRY PLANET
+   ============================================================ */
+
+/* Slider wrapper for the card planet (canvas + orbit cards).
+   Being a transformed fixed container, its fixed children anchor to it. */
+.planet-slider {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+  transition: transform 1.15s cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+/* Navigation arrows between planets */
+.nav-arrow {
+  position: fixed;
+  top: 50%;
+  /* framer-motion controls this element's transform, so center via margin */
+  margin-top: -41px;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.nav-arrow-left { left: 14px; }
+.nav-arrow-right { right: 14px; }
+
+.nav-arrow-circle {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #d0426e;
+  background: rgba(255, 255, 255, 0.45);
+  border: 1.5px solid rgba(255, 133, 161, 0.5);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 6px 20px rgba(216, 64, 120, 0.18);
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.3s ease;
+  animation: navArrowPulse 2.6s ease-in-out infinite;
+}
+
+.nav-arrow:hover .nav-arrow-circle {
+  transform: scale(1.12);
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.nav-arrow:active .nav-arrow-circle {
+  transform: scale(0.94);
+}
+
+@keyframes navArrowPulse {
+  0%, 100% { box-shadow: 0 6px 20px rgba(216, 64, 120, 0.18), 0 0 0 0 rgba(255, 92, 138, 0.35); }
+  50% { box-shadow: 0 6px 20px rgba(216, 64, 120, 0.18), 0 0 0 12px rgba(255, 92, 138, 0); }
+}
+
+.nav-arrow-label {
+  font-family: var(--font-family-hand);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #b03060;
+  text-shadow: 0 1px 6px rgba(255, 255, 255, 0.8);
+}
+
+/* Planet placement + glow */
+.sp-planet-wrap {
+  position: absolute;
+  left: 50%;
+  top: 56%;
+  transform: translate(-50%, -50%);
+  width: min(80vmin, 540px);
+  z-index: 2;
+}
+
+.sp-planet-glow {
+  position: absolute;
+  left: 50%;
+  top: 62%;
+  transform: translate(-50%, -50%);
+  width: min(72vmin, 500px);
+  height: min(72vmin, 500px);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.85) 0%, rgba(255, 226, 238, 0.5) 45%, transparent 70%);
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* Welcome heading */
+.sp-welcome {
+  position: absolute;
+  top: 15%;
+  left: 0;
+  width: 100%;
+  text-align: center;
+  font-family: var(--font-family-hand);
+  font-size: clamp(2rem, 6.5vw, 3.6rem);
+  font-weight: 700;
+  color: #b03060;
+  text-shadow: 0 2px 14px rgba(255, 255, 255, 0.9);
+  white-space: pre;
+  z-index: 3;
+  pointer-events: none;
+}
+
+/* Speech bubble */
+.sp-bubble {
+  position: absolute;
+  left: 55%;
+  top: 12%;
+  max-width: min(60vw, 250px);
+  background: rgba(255, 255, 255, 0.92);
+  border: 2px solid #3d2438;
+  border-radius: 18px;
+  padding: 10px 16px;
+  font-family: var(--font-family-hand);
+  font-size: 1.15rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: #3d2438;
+  box-shadow: 0 8px 24px rgba(216, 64, 120, 0.18);
+  z-index: 4;
+  pointer-events: none;
+}
+
+.sp-bubble-tail {
+  position: absolute;
+  left: 22px;
+  bottom: -9px;
+  width: 16px;
+  height: 16px;
+  background: rgba(255, 255, 255, 0.92);
+  border-right: 2px solid #3d2438;
+  border-bottom: 2px solid #3d2438;
+  transform: rotate(45deg) skew(8deg, 8deg);
+}
+
+@media (max-width: 640px) {
+  .sp-bubble {
+    left: 50%;
+    transform: translateX(-12%);
+    top: 9%;
+  }
+}
+
+/* The handwritten letter */
+.sp-letter {
+  position: relative;
+  width: min(88vw, 440px);
+  max-height: 78vh;
+  overflow-y: auto;
+  background:
+    repeating-linear-gradient(
+      transparent,
+      transparent 30px,
+      rgba(214, 120, 150, 0.16) 31px
+    ),
+    #fffdf4;
+  border: 1px solid #f0d5de;
+  border-radius: 8px;
+  padding: 34px 28px 26px;
+  box-shadow:
+    0 30px 70px rgba(120, 30, 70, 0.28),
+    0 4px 18px rgba(216, 64, 120, 0.16);
+  font-family: var(--font-family-hand);
+  cursor: pointer;
+}
+
+.sp-letter-para {
+  font-size: clamp(1.2rem, 2.8vmin, 1.45rem);
+  font-weight: 500;
+  line-height: 1.55;
+  color: #5a3050;
+  margin-bottom: 14px;
+}
+
+.sp-letter-sign {
+  font-size: clamp(1.35rem, 3.2vmin, 1.7rem);
+  font-weight: 700;
+  color: #b03060;
+  text-align: right;
+  margin-top: 8px;
+  transform: rotate(-2deg);
+}
+
+.sp-letter-hint {
+  display: block;
+  margin-top: 14px;
+  font-size: 0.95rem;
+  color: rgba(90, 48, 80, 0.5);
+  text-align: center;
+}
+
+.sp-letter-close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(176, 48, 96, 0.35);
+  background: rgba(255, 255, 255, 0.7);
+  color: #b03060;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: transform 0.25s ease, background 0.25s ease;
+}
+
+.sp-letter-close:hover {
+  transform: scale(1.12);
+  background: #ffe4f0;
+}
+
+/* Replay button */
+.sp-replay {
+  position: fixed;
+  left: 16px;
+  bottom: 18px;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 15px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(255, 133, 161, 0.5);
+  background: rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: #b03060;
+  font-family: var(--font-family-hand);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(216, 64, 120, 0.15);
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.3s ease;
+  pointer-events: auto;
+}
+
+.sp-replay:hover {
+  transform: scale(1.07);
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.sp-replay:active {
+  transform: scale(0.95);
+}

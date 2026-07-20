@@ -4,6 +4,7 @@ import { Sphere, Line } from '@react-three/drei'
 import { motion, AnimatePresence } from 'framer-motion'
 import gsap from 'gsap'
 import * as THREE from 'three'
+import SorryPlanet, { NavArrow } from './SorryPlanet'
 
 // ============================================================
 // CONFIG
@@ -2191,6 +2192,19 @@ export default function App() {
   const [openedCard, setOpenedCard] = useState(null)
   const [openedCardIds, setOpenedCardIds] = useState([])
 
+  // Planet navigation: 0 = card planet, 1 = sorry planet
+  const [planetIndex, setPlanetIndex] = useState(0)
+  const [sorryVisited, setSorryVisited] = useState(false)
+
+  const handleGoToSorryPlanet = useCallback(() => {
+    setSorryVisited(true)
+    setPlanetIndex(1)
+  }, [])
+
+  const handleBackToCardPlanet = useCallback(() => {
+    setPlanetIndex(0)
+  }, [])
+
   const isConfessionUnlocked = useMemo(() => {
     const required = [1, 3, 4, 5, 6]
     return required.every(id => openedCardIds.includes(id))
@@ -2324,16 +2338,30 @@ export default function App() {
       <div className={`bg-blob bg-blob-2 ${scene >= 2 ? 'visible' : ''}`} />
       <div className={`bg-blob bg-blob-3 ${scene >= 2 ? 'visible' : ''}`} />
 
-      {/* Three.js Canvas — particles + solar system */}
-      <Canvas
-        className="!fixed inset-0 z-10"
-        camera={{ position: [0, 0, CAMERA_Z], fov: CAMERA_FOV }}
-        style={{ pointerEvents: 'none' }}
+      {/* Card planet slider — slides away to the right when visiting the Sorry Planet.
+          The card planet itself is untouched; only this wrapper moves. */}
+      <div
+        className="planet-slider"
+        style={{ transform: planetIndex === 1 ? 'translateX(100vw)' : 'translateX(0)' }}
       >
-        <SceneLighting scene={scene} />
-        <ParticleField colorMode={colorMode} />
-        <SolarSystem visible={scene >= 2} />
-      </Canvas>
+        {/* Three.js Canvas — particles + solar system */}
+        <Canvas
+          className="!fixed inset-0 z-10"
+          camera={{ position: [0, 0, CAMERA_Z], fov: CAMERA_FOV }}
+          style={{ pointerEvents: 'none' }}
+        >
+          <SceneLighting scene={scene} />
+          <ParticleField colorMode={colorMode} />
+          <SolarSystem visible={scene >= 2} />
+        </Canvas>
+
+        {/* Scene 2 & 3: Orbiting Cards + Planet */}
+        <OrbitCards
+          active={scene >= 2}
+          onCardClick={handleCardClick}
+          isConfessionUnlocked={isConfessionUnlocked}
+        />
+      </div>
 
       {/* Scene 1: Password Gate */}
       <AnimatePresence mode="wait">
@@ -2345,12 +2373,17 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      {/* Scene 2 & 3: Orbiting Cards + Planet */}
-      <OrbitCards
-        active={scene >= 2}
-        onCardClick={handleCardClick}
-        isConfessionUnlocked={isConfessionUnlocked}
-      />
+      {/* Sorry Planet — mounted after first visit so progress is preserved */}
+      {sorryVisited && (
+        <SorryPlanet active={planetIndex === 1} onBack={handleBackToCardPlanet} />
+      )}
+
+      {/* Left arrow: only shown on the card planet, pointing to the Sorry Planet */}
+      <AnimatePresence>
+        {scene >= 3 && planetIndex === 0 && !openedCard && (
+          <NavArrow key="sorry-arrow" dir="left" label="sorry planet" onClick={handleGoToSorryPlanet} />
+        )}
+      </AnimatePresence>
 
       {/* Scene 4: Opened Card */}
       <AnimatePresence>
