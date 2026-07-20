@@ -8,10 +8,10 @@ import { motion, AnimatePresence, useAnimationControls } from 'framer-motion'
 // adds the doodle resident, rim flowers, gifts, and the letter.
 // ============================================================
 
-const WELCOME_TEXT = 'welcome to sorry planet'
+const WELCOME_TEXT = 'welcome to Sorry's planet'
 const TOTAL_BOUQUETS = 32
 
-const MSG_HELLO = "Hello… I'm sorry 🥺"
+const MSG_HELLO = "Hello… I'm Sorry 🥺"
 const MSG_LIVE = "I live on this planet — and I'm so happy to see you here! 🌸"
 const MSG_GIFTS = 'I have so many gifts for you! Tap me… 💐'
 const MSG_LETTER = 'This letter is for you… tap it, please 💌'
@@ -25,11 +25,11 @@ const MILESTONE_MSGS = {
 }
 
 const LETTER_PARAGRAPHS = [
-  'To my dearest,',
-  "I'm sorry for being such a silly boyfriend — and a silly future husband, too. I'm sorry for the times I made you sad and left your little heart aching.",
+  'To my dearest Dedey,',
+  "I'm sorry for being such a silly boyfriend. I'm sorry for the times I made you sad and left your little heart aching.",
   "I'm sorry for today, and for tomorrow if I ever get things wrong again. I won't hide behind excuses — every time I fall short, I'll own it, learn from it, and love you better because of it. I promise to keep becoming a better man, day by day — especially for my beloved girlfriend, my future wife.",
 ]
-const LETTER_SIGNATURE = '— your future husband ♡'
+const LETTER_SIGNATURE = '— your future husband, Apit ♡'
 
 // Deterministic pseudo-random from a seed
 function seeded(seed) {
