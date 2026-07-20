@@ -788,14 +788,93 @@ function createCloudTexture() {
   return texture
 }
 
-function SolarSystem({ visible }) {
+// Pink flower texture for the Sorry Planet
+function createSorryPlanetTexture() {
+  const canvas = document.createElement('canvas')
+  canvas.width = 512
+  canvas.height = 256
+  const ctx = canvas.getContext('2d')
+
+  // Soft pink base with vertical shading
+  const grad = ctx.createLinearGradient(0, 0, 0, canvas.height)
+  grad.addColorStop(0, '#ffc3d6')
+  grad.addColorStop(0.5, '#ff9fbe')
+  grad.addColorStop(1, '#f77fa6')
+  ctx.fillStyle = grad
+  ctx.fillRect(0, 0, canvas.width, canvas.height)
+
+  // Lighter meadow patches
+  for (let i = 0; i < 14; i++) {
+    const r = 18 + Math.random() * 40
+    const x = Math.random() * canvas.width
+    const y = Math.random() * canvas.height
+    ctx.fillStyle = 'rgba(255, 224, 235, 0.5)'
+    ctx.beginPath()
+    ctx.ellipse(x, y, r, r * 0.55, 0, 0, Math.PI * 2)
+    ctx.fill()
+  }
+
+  // Doodle flowers — dominant pinks with colorful accents
+  const pinks = ['#ff4f7e', '#e8557f', '#ff6b9d', '#d94f7e']
+  const accents = ['#ffd166', '#ff8c61', '#7fd8a4', '#6ec6ff', '#fffdf7']
+  const drawFlower = (x, y, size, color) => {
+    for (let p = 0; p < 5; p++) {
+      const a = (p / 5) * Math.PI * 2
+      ctx.fillStyle = color
+      ctx.beginPath()
+      ctx.arc(x + Math.cos(a) * size * 0.8, y + Math.sin(a) * size * 0.8, size * 0.55, 0, Math.PI * 2)
+      ctx.fill()
+    }
+    ctx.fillStyle = '#ffe9a3'
+    ctx.beginPath()
+    ctx.arc(x, y, size * 0.45, 0, Math.PI * 2)
+    ctx.fill()
+  }
+  for (let i = 0; i < 46; i++) {
+    const x = Math.random() * canvas.width
+    const y = 12 + Math.random() * (canvas.height - 24)
+    const size = 4 + Math.random() * 7
+    const color = Math.random() < 0.68
+      ? pinks[Math.floor(Math.random() * pinks.length)]
+      : accents[Math.floor(Math.random() * accents.length)]
+    drawFlower(x, y, size, color)
+    if (x < 20) drawFlower(x + canvas.width, y, size, color)
+    if (x > canvas.width - 20) drawFlower(x - canvas.width, y, size, color)
+  }
+
+  // Tiny greenery dots
+  ctx.fillStyle = 'rgba(106, 168, 112, 0.55)'
+  for (let i = 0; i < 60; i++) {
+    ctx.beginPath()
+    ctx.arc(Math.random() * canvas.width, Math.random() * canvas.height, 1.5 + Math.random() * 2, 0, Math.PI * 2)
+    ctx.fill()
+  }
+
+  const texture = new THREE.CanvasTexture(canvas)
+  texture.wrapS = THREE.RepeatWrapping
+  texture.wrapT = THREE.ClampToEdgeWrapping
+  return texture
+}
+
+// Sorry Planet orbital parameters — the ring right next to ours
+const SORRY_ORBIT = 36
+const SORRY_SPEED = 0.022
+const SORRY_START_ANGLE = 2.1
+const TRAVEL_SECONDS = 3
+
+function SolarSystem({ visible, focus = 0 }) {
   const systemRef = useRef()
   const planetMeshRefs = useRef([])
   
   const ourPlanetRef = useRef()
   const ourPlanetMeshRef = useRef()
   const ourCloudsMeshRef = useRef()
-  
+
+  const sorryPlanetRef = useRef()
+  const sorryMeshRef = useRef()
+  const sorryCloudsMeshRef = useRef()
+  const focusProgRef = useRef(0)
+
   // Refs for smooth fading of the Sun using shader uniforms
   const sunShaderRef = useRef()
   const coronaShaderRef = useRef()
@@ -832,8 +911,8 @@ function SolarSystem({ visible }) {
     { r: 1.1,  orbit: 74, speed: 0.004, color: '#e8d8a8', emissive: '#746c54', startAngle: 3.5 },
   ], [])
 
-  // All orbit radii (including ours) for ring lines
-  const orbitRadii = useMemo(() => [8, 16, OUR_ORBIT, 40, 56, 74], [])
+  // All orbit radii (including ours and the Sorry Planet's) for ring lines
+  const orbitRadii = useMemo(() => [8, 16, OUR_ORBIT, SORRY_ORBIT, 40, 56, 74], [])
 
   // Cache planet textures
   const planetTextures = useMemo(() => {
@@ -855,7 +934,11 @@ function SolarSystem({ visible }) {
     return createCloudTexture()
   }, [])
 
-  useFrame((state) => {
+  const sorryPlanetTexture = useMemo(() => {
+    return createSorryPlanetTexture()
+  }, [])
+
+  useFrame((state, delta) => {
     const t = state.clock.elapsedTime
 
     // Smoothly update the fade value
@@ -889,6 +972,12 @@ function SolarSystem({ visible }) {
     if (ourCloudsMeshRef.current && ourCloudsMeshRef.current.material) {
       ourCloudsMeshRef.current.material.opacity = fadeRef.current * 0.8
     }
+    if (sorryMeshRef.current && sorryMeshRef.current.material) {
+      sorryMeshRef.current.material.opacity = fadeRef.current
+    }
+    if (sorryCloudsMeshRef.current && sorryCloudsMeshRef.current.material) {
+      sorryCloudsMeshRef.current.material.opacity = fadeRef.current * 0.55
+    }
 
     // Animate our central planet
     if (ourPlanetMeshRef.current) {
@@ -896,6 +985,12 @@ function SolarSystem({ visible }) {
     }
     if (ourCloudsMeshRef.current) {
       ourCloudsMeshRef.current.rotation.y += 0.003
+    }
+    if (sorryMeshRef.current) {
+      sorryMeshRef.current.rotation.y += 0.0022
+    }
+    if (sorryCloudsMeshRef.current) {
+      sorryCloudsMeshRef.current.rotation.y += 0.0032
     }
 
     if (!systemRef.current) return
@@ -905,10 +1000,31 @@ function SolarSystem({ visible }) {
     const ourX = Math.cos(ourAngle) * OUR_ORBIT
     const ourZ = Math.sin(ourAngle) * OUR_ORBIT
 
-    // Shift the entire solar system so our position maps to origin
+    // Sorry Planet's absolute position on the neighboring orbit
+    const sorryAngle = SORRY_START_ANGLE + t * SORRY_SPEED
+    const sorryX = Math.cos(sorryAngle) * SORRY_ORBIT
+    const sorryZ = Math.sin(sorryAngle) * SORRY_ORBIT
+
+    if (ourPlanetRef.current) {
+      ourPlanetRef.current.position.set(ourX, 0, ourZ)
+    }
+    if (sorryPlanetRef.current) {
+      sorryPlanetRef.current.position.set(sorryX, 0, sorryZ)
+    }
+
+    // Travel between the two planets: ease the focus from one orbit to the other
+    const dir = focus === 1 ? 1 : -1
+    focusProgRef.current = Math.max(0, Math.min(1, focusProgRef.current + (dir * delta) / TRAVEL_SECONDS))
+    const p = focusProgRef.current
+    const eased = p * p * p * (p * (p * 6 - 15) + 10) // smootherstep
+
+    const focusX = ourX + (sorryX - ourX) * eased
+    const focusZ = ourZ + (sorryZ - ourZ) * eased
+
+    // Shift the entire solar system so the focused planet maps to origin
     // (in the tilted group's local coordinates)
-    systemRef.current.position.x = -ourX
-    systemRef.current.position.z = -ourZ
+    systemRef.current.position.x = -focusX
+    systemRef.current.position.z = -focusZ
 
     // Animate each planet on its own orbit (absolute coords in solar system)
     planetMeshRefs.current.forEach((ref, i) => {
@@ -1054,32 +1170,59 @@ function SolarSystem({ visible }) {
           </group>
         ))}
 
-      </group>
+        {/* ── CENTRAL PLANET (OUR PLANET) — carried on its orbit ── */}
+        <group ref={ourPlanetRef}>
+          {/* Core */}
+          <mesh ref={ourPlanetMeshRef}>
+            <sphereGeometry args={[1.8, 64, 64]} />
+            <meshStandardMaterial
+              map={ourPlanetTexture}
+              roughness={0.5}
+              metalness={0.1}
+              transparent
+              opacity={0}
+            />
+          </mesh>
+          {/* Clouds */}
+          <mesh ref={ourCloudsMeshRef}>
+            <sphereGeometry args={[1.82, 64, 64]} />
+            <meshStandardMaterial
+              map={cloudsTexture}
+              transparent
+              opacity={0}
+              depthWrite={false}
+              blending={THREE.NormalBlending}
+            />
+          </mesh>
+        </group>
 
-      {/* ── CENTRAL PLANET (OUR PLANET) ── */}
-      <group ref={ourPlanetRef}>
-        {/* Core */}
-        <mesh ref={ourPlanetMeshRef}>
-          <sphereGeometry args={[1.8, 64, 64]} />
-          <meshStandardMaterial
-            map={ourPlanetTexture}
-            roughness={0.5}
-            metalness={0.1}
-            transparent
-            opacity={0}
-          />
-        </mesh>
-        {/* Clouds */}
-        <mesh ref={ourCloudsMeshRef}>
-          <sphereGeometry args={[1.82, 64, 64]} />
-          <meshStandardMaterial
-            map={cloudsTexture}
-            transparent
-            opacity={0}
-            depthWrite={false}
-            blending={THREE.NormalBlending}
-          />
-        </mesh>
+        {/* ── SORRY PLANET — pink flower planet on the neighboring orbit ── */}
+        <group ref={sorryPlanetRef}>
+          <mesh ref={sorryMeshRef}>
+            <sphereGeometry args={[1.8, 64, 64]} />
+            <meshStandardMaterial
+              map={sorryPlanetTexture}
+              emissive="#b0476b"
+              emissiveIntensity={0.38}
+              roughness={0.55}
+              metalness={0.05}
+              transparent
+              opacity={0}
+            />
+          </mesh>
+          <mesh ref={sorryCloudsMeshRef}>
+            <sphereGeometry args={[1.83, 64, 64]} />
+            <meshStandardMaterial
+              map={cloudsTexture}
+              color="#ffe4ef"
+              transparent
+              opacity={0}
+              depthWrite={false}
+              blending={THREE.NormalBlending}
+            />
+          </mesh>
+        </group>
+
       </group>
     </group>
   )
@@ -2192,18 +2335,30 @@ export default function App() {
   const [openedCard, setOpenedCard] = useState(null)
   const [openedCardIds, setOpenedCardIds] = useState([])
 
-  // Planet navigation: 0 = card planet, 1 = sorry planet
+  // Planet navigation: 0 = card planet, 1 = sorry planet.
+  // Travelling covers the flight across the solar system between orbits.
   const [planetIndex, setPlanetIndex] = useState(0)
   const [sorryVisited, setSorryVisited] = useState(false)
+  const [travelling, setTravelling] = useState(false)
+  const travelTimerRef = useRef(null)
+
+  const startTravel = useCallback((target) => {
+    clearTimeout(travelTimerRef.current)
+    setTravelling(true)
+    setPlanetIndex(target)
+    travelTimerRef.current = setTimeout(() => setTravelling(false), 3300)
+  }, [])
 
   const handleGoToSorryPlanet = useCallback(() => {
     setSorryVisited(true)
-    setPlanetIndex(1)
-  }, [])
+    startTravel(1)
+  }, [startTravel])
 
   const handleBackToCardPlanet = useCallback(() => {
-    setPlanetIndex(0)
-  }, [])
+    startTravel(0)
+  }, [startTravel])
+
+  useEffect(() => () => clearTimeout(travelTimerRef.current), [])
 
   const isConfessionUnlocked = useMemo(() => {
     const required = [1, 3, 4, 5, 6]
@@ -2338,24 +2493,27 @@ export default function App() {
       <div className={`bg-blob bg-blob-2 ${scene >= 2 ? 'visible' : ''}`} />
       <div className={`bg-blob bg-blob-3 ${scene >= 2 ? 'visible' : ''}`} />
 
-      {/* Card planet slider — slides away to the right when visiting the Sorry Planet.
-          The card planet itself is untouched; only this wrapper moves. */}
-      <div
-        className="planet-slider"
-        style={{ transform: planetIndex === 1 ? 'translateX(100vw)' : 'translateX(0)' }}
+      {/* Three.js Canvas — particles + solar system (both planets live here) */}
+      <Canvas
+        className="!fixed inset-0 z-10"
+        camera={{ position: [0, 0, CAMERA_Z], fov: CAMERA_FOV }}
+        style={{ pointerEvents: 'none' }}
       >
-        {/* Three.js Canvas — particles + solar system */}
-        <Canvas
-          className="!fixed inset-0 z-10"
-          camera={{ position: [0, 0, CAMERA_Z], fov: CAMERA_FOV }}
-          style={{ pointerEvents: 'none' }}
-        >
-          <SceneLighting scene={scene} />
-          <ParticleField colorMode={colorMode} />
-          <SolarSystem visible={scene >= 2} />
-        </Canvas>
+        <SceneLighting scene={scene} />
+        <ParticleField colorMode={colorMode} />
+        <SolarSystem visible={scene >= 2} focus={planetIndex} />
+      </Canvas>
 
-        {/* Scene 2 & 3: Orbiting Cards + Planet */}
+      {/* Scene 2 & 3: Orbiting Cards + Planet — fades out while visiting the Sorry Planet.
+          The card planet itself is untouched; only this wrapper fades. */}
+      <div
+        className="card-planet-layer"
+        style={{
+          opacity: planetIndex === 0 ? 1 : 0,
+          visibility: planetIndex === 1 && !travelling ? 'hidden' : 'visible',
+          transition: planetIndex === 1 ? 'opacity 0.9s ease' : 'opacity 1.2s ease 1.8s',
+        }}
+      >
         <OrbitCards
           active={scene >= 2}
           onCardClick={handleCardClick}
@@ -2373,14 +2531,14 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      {/* Sorry Planet — mounted after first visit so progress is preserved */}
+      {/* Sorry Planet overlay — mounted after first visit so progress is preserved */}
       {sorryVisited && (
-        <SorryPlanet active={planetIndex === 1} onBack={handleBackToCardPlanet} />
+        <SorryPlanet active={planetIndex === 1 && !travelling} onBack={handleBackToCardPlanet} />
       )}
 
       {/* Left arrow: only shown on the card planet, pointing to the Sorry Planet */}
       <AnimatePresence>
-        {scene >= 3 && planetIndex === 0 && !openedCard && (
+        {scene >= 3 && planetIndex === 0 && !travelling && !openedCard && (
           <NavArrow key="sorry-arrow" dir="left" label="sorry planet" onClick={handleGoToSorryPlanet} />
         )}
       </AnimatePresence>

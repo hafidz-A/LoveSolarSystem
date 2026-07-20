@@ -2,7 +2,10 @@ import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { motion, AnimatePresence, useAnimationControls } from 'framer-motion'
 
 // ============================================================
-// SORRY PLANET — a little flower planet with a doodle resident
+// SORRY PLANET — overlay for the pink flower planet that lives
+// on the orbit next to the card planet. The planet itself is a
+// 3D sphere rendered in the solar-system canvas; this overlay
+// adds the doodle resident, rim flowers, gifts, and the letter.
 // ============================================================
 
 const WELCOME_TEXT = 'welcome to sorry planet'
@@ -34,6 +37,20 @@ function seeded(seed) {
   return x - Math.floor(x)
 }
 
+// Same camera math as the solar system so the overlay hugs the 3D planet
+const CAMERA_Z = 15
+const CAMERA_FOV = 60
+const PLANET_RADIUS_3D = 1.8
+
+function getPlanetScreenSize() {
+  const fovRad = (CAMERA_FOV / 2) * Math.PI / 180
+  const visibleHeight = 2 * CAMERA_Z * Math.tan(fovRad)
+  const fraction = (PLANET_RADIUS_3D * 2) / visibleHeight
+  const baseSize = fraction * window.innerHeight
+  const maxSize = Math.min(window.innerWidth, window.innerHeight) * 0.30
+  return Math.min(baseSize, maxSize)
+}
+
 const PHASE_ORDER = { boot: 0, welcome: 1, morph: 2, greet: 3, gift: 4, letterOffer: 5, done: 6 }
 
 // ------------------------------------------------------------
@@ -63,12 +80,11 @@ export function NavArrow({ dir, label, onClick }) {
 }
 
 // ------------------------------------------------------------
-// Little doodle flowers scattered on the planet face
+// Little doodle flowers along the planet's horizon
 // ------------------------------------------------------------
 function PlanetFlower({ x, y, size, color, type, rotation = 0 }) {
-  const petals = []
   if (type === 0) {
-    // daisy: ring of petals + warm center
+    const petals = []
     for (let a = 0; a < 6; a++) {
       const ang = (a / 6) * Math.PI * 2
       petals.push(
@@ -91,7 +107,6 @@ function PlanetFlower({ x, y, size, color, type, rotation = 0 }) {
     )
   }
   if (type === 1) {
-    // tulip cup
     const r = size
     return (
       <g transform={`rotate(${rotation} ${x} ${y})`}>
@@ -101,11 +116,9 @@ function PlanetFlower({ x, y, size, color, type, rotation = 0 }) {
           stroke="#3d2438"
           strokeWidth="1.2"
         />
-        <path d={`M ${x} ${y - r * 1.05} L ${x} ${y + r * 0.4}`} stroke="rgba(61,36,56,0.25)" strokeWidth="1" />
       </g>
     )
   }
-  // rose swirl
   return (
     <g transform={`rotate(${rotation} ${x} ${y})`}>
       <circle cx={x} cy={y} r={size} fill={color} stroke="#3d2438" strokeWidth="1.2" />
@@ -132,7 +145,6 @@ const WRAP_COLORS = ['#f5e3c2', '#ffffff', '#ffd9e6', '#e6f6ec']
 
 function BouquetHead({ x, y, r, color, type }) {
   if (type === 0) {
-    // pom daisy
     const dots = []
     for (let a = 0; a < 5; a++) {
       const ang = (a / 5) * Math.PI * 2 - Math.PI / 2
@@ -143,7 +155,6 @@ function BouquetHead({ x, y, r, color, type }) {
     return <g>{dots}<circle cx={x} cy={y} r={r * 0.45} fill="#ffd166" stroke="#3d2438" strokeWidth="1.1" /></g>
   }
   if (type === 1) {
-    // tulip
     return (
       <path
         d={`M ${x - r} ${y + r * 0.3} Q ${x - r} ${y - r} ${x} ${y - r * 0.8} Q ${x + r} ${y - r} ${x + r} ${y + r * 0.3} Q ${x + r * 0.5} ${y + r} ${x} ${y + r * 0.9} Q ${x - r * 0.5} ${y + r} ${x - r} ${y + r * 0.3} Z`}
@@ -152,7 +163,6 @@ function BouquetHead({ x, y, r, color, type }) {
     )
   }
   if (type === 2) {
-    // rose swirl
     return (
       <g>
         <circle cx={x} cy={y} r={r} fill={color} stroke="#3d2438" strokeWidth="1.3" />
@@ -161,7 +171,6 @@ function BouquetHead({ x, y, r, color, type }) {
       </g>
     )
   }
-  // bell cluster
   return (
     <g>
       <circle cx={x} cy={y - r * 0.5} r={r * 0.55} fill={color} stroke="#3d2438" strokeWidth="1.1" />
@@ -175,7 +184,7 @@ const HEAD_SPOTS = [
   [50, 26], [32, 40], [68, 40], [40, 14], [60, 14], [24, 26], [76, 26],
 ]
 
-export function BouquetSVG({ seed, size = 72 }) {
+export function BouquetSVG({ seed, size = 96 }) {
   const palette = BOUQUET_PALETTES[seed % 8]
   const type = Math.floor(seed / 8) % 4
   const wrap = WRAP_COLORS[(seed + Math.floor(seed / 4)) % 4]
@@ -184,22 +193,17 @@ export function BouquetSVG({ seed, size = 72 }) {
 
   return (
     <svg width={size} height={size * 1.3} viewBox="0 0 100 130" style={{ overflow: 'visible' }}>
-      {/* stems */}
       {heads.map(([hx, hy], i) => (
         <path key={`s${i}`} d={`M 50 100 Q ${(50 + hx) / 2} ${(100 + hy) / 2 + 6} ${hx} ${hy + 8}`} fill="none" stroke="#5a8a5e" strokeWidth="2" strokeLinecap="round" />
       ))}
-      {/* greenery */}
       <path d="M 42 70 Q 30 58 26 46" fill="none" stroke="#7cb083" strokeWidth="2" strokeLinecap="round" />
       <path d="M 58 70 Q 70 58 74 46" fill="none" stroke="#7cb083" strokeWidth="2" strokeLinecap="round" />
-      {/* wrap cone */}
       <path d="M 29 60 L 47 118 Q 50 124 53 118 L 71 60 Q 50 74 29 60 Z" fill={wrap} stroke="#3d2438" strokeWidth="2" strokeLinejoin="round" />
       <path d="M 29 60 Q 50 74 71 60" fill="none" stroke="rgba(61,36,56,0.35)" strokeWidth="1.3" />
       <path d="M 50 71 L 50 112" fill="none" stroke="rgba(61,36,56,0.18)" strokeWidth="1.2" />
-      {/* ribbon */}
       <circle cx="50" cy="88" r="4.5" fill={palette[1]} stroke="#3d2438" strokeWidth="1.2" />
       <path d="M 45.5 88 Q 38 84 36 90 Q 42 93 45.5 88 Z" fill={palette[1]} stroke="#3d2438" strokeWidth="1" />
       <path d="M 54.5 88 Q 62 84 64 90 Q 58 93 54.5 88 Z" fill={palette[1]} stroke="#3d2438" strokeWidth="1" />
-      {/* flower heads */}
       {heads.map(([hx, hy], i) => (
         <BouquetHead key={`h${i}`} x={hx} y={hy} r={9 + (i % 3) * 1.6} color={palette[i % 3]} type={type} />
       ))}
@@ -213,12 +217,11 @@ export function BouquetSVG({ seed, size = 72 }) {
 function buildSlots() {
   const top = [], bottom = [], left = [], right = []
   for (let k = 0; k < 8; k++) {
-    top.push({ x: 7 + k * 12.3 + (seeded(k) - 0.5) * 3, y: 5 + seeded(k + 10) * 3.5 })
-    bottom.push({ x: 7 + k * 12.3 + (seeded(k + 20) - 0.5) * 3, y: 88 + seeded(k + 30) * 4 })
-    left.push({ x: 3.5 + seeded(k + 40) * 2.5, y: 15 + k * 9.6 })
-    right.push({ x: 92 + seeded(k + 50) * 2.5, y: 15 + k * 9.6 })
+    top.push({ x: 7 + k * 12.3 + (seeded(k) - 0.5) * 3, y: 6 + seeded(k + 10) * 3.5 })
+    bottom.push({ x: 7 + k * 12.3 + (seeded(k + 20) - 0.5) * 3, y: 86 + seeded(k + 30) * 4 })
+    left.push({ x: 4 + seeded(k + 40) * 2.5, y: 16 + k * 9.4 })
+    right.push({ x: 91 + seeded(k + 50) * 2.5, y: 16 + k * 9.4 })
   }
-  // interleave edges so the frame fills evenly all around
   const slots = []
   for (let k = 0; k < 8; k++) {
     slots.push(top[k], bottom[7 - k], left[k], right[7 - k])
@@ -226,12 +229,187 @@ function buildSlots() {
   return slots.map((s, i) => ({
     ...s,
     rot: (seeded(i + 60) - 0.5) * 36,
-    size: 54 + seeded(i + 70) * 26,
+    sizeSeed: seeded(i + 70),
   }))
 }
 
+// Bigger bouquets, scaled to the viewport
+function slotSize(sizeSeed) {
+  const base = Math.min(window.innerWidth, window.innerHeight)
+  return Math.max(64, base * 0.115 + sizeSeed * base * 0.05)
+}
+
 // ------------------------------------------------------------
-// Main component — stays mounted after first visit so progress
+// The doodle resident — natural little movements:
+// blinking, swaying, breathing bob, an elbow-pivot wave,
+// a happy hop + arm fling on every tap.
+// ------------------------------------------------------------
+function Doodle({ phase, at, drawn, bouquetCount, hopControls, armFlingControls, onTap, onEnvelopeTap }) {
+  const showLetterPose = at('letterOffer')
+  const waving = phase === 'greet' || phase === 'morph'
+
+  const strokeProps = (i) => ({
+    fill: 'none',
+    stroke: '#3d2438',
+    strokeWidth: 5,
+    strokeLinecap: 'round',
+    initial: { pathLength: 0, opacity: 0 },
+    animate: drawn ? { pathLength: 1, opacity: 1 } : { pathLength: 0, opacity: 0 },
+    transition: { duration: 0.55, delay: drawn ? 0.4 + i * 0.13 : 0, ease: 'easeInOut' },
+  })
+
+  return (
+    <motion.g animate={hopControls} style={{ transformBox: 'view-box', transformOrigin: '60px 166px' }}>
+      {/* gentle sway from the feet, like shifting weight */}
+      <motion.g
+        animate={{ rotate: [-1.4, 1.4, -1.4] }}
+        transition={{ duration: 5.6, repeat: Infinity, ease: 'easeInOut' }}
+        style={{ transformBox: 'view-box', transformOrigin: '60px 166px' }}
+      >
+        {/* breathing bob */}
+        <motion.g
+          animate={{ y: [0, -2.5, 0] }}
+          transition={{ duration: 3.1, repeat: Infinity, ease: 'easeInOut' }}
+        >
+          <g onClick={onTap} style={{ cursor: phase === 'gift' ? 'pointer' : 'default' }}>
+            {/* generous invisible hit area */}
+            <circle cx="60" cy="80" r="78" fill="transparent" />
+
+            {/* legs + feet */}
+            <motion.path d="M 60 120 Q 52 140 48 162" {...strokeProps(3)} />
+            <motion.path d="M 60 120 Q 68 140 72 162" {...strokeProps(4)} />
+            <motion.path d="M 48 162 Q 43 164 38 163" {...strokeProps(5)} />
+            <motion.path d="M 72 162 Q 77 164 82 163" {...strokeProps(6)} />
+
+            {/* body */}
+            <motion.path d="M 60 60 Q 57 90 60 120" {...strokeProps(2)} />
+
+            {/* head with a tiny curious tilt */}
+            <motion.g
+              animate={{ rotate: [0, -2.5, 0, 2.5, 0] }}
+              transition={{ duration: 7.2, repeat: Infinity, ease: 'easeInOut' }}
+              style={{ transformBox: 'view-box', transformOrigin: '60px 58px' }}
+            >
+              <motion.circle cx="60" cy="34" r="26" {...strokeProps(0)} fill="#fff8fa" />
+              <motion.path d="M 50 10 Q 54 0 60 4" {...strokeProps(1)} strokeWidth={4} />
+              <motion.path d="M 62 8 Q 67 -2 72 4" {...strokeProps(1)} strokeWidth={4} />
+
+              {/* face fades in after the strokes */}
+              <motion.g
+                initial={{ opacity: 0 }}
+                animate={{ opacity: drawn ? 1 : 0 }}
+                transition={{ duration: 0.6, delay: drawn ? 1.7 : 0 }}
+              >
+                {/* blinking round eyes */}
+                <motion.g
+                  animate={{ scaleY: [1, 1, 0.08, 1, 1] }}
+                  transition={{ duration: 3.4, times: [0, 0.88, 0.93, 0.97, 1], repeat: Infinity }}
+                  style={{ transformBox: 'view-box', transformOrigin: '60px 31px' }}
+                >
+                  <circle cx="50" cy="31" r="3.4" fill="#3d2438" />
+                  <circle cx="70" cy="31" r="3.4" fill="#3d2438" />
+                </motion.g>
+                <path d="M 52 44 Q 60 51 68 44" fill="none" stroke="#3d2438" strokeWidth="3.2" strokeLinecap="round" />
+                <circle cx="41" cy="40" r="4.5" fill="#ffb3c6" opacity="0.7" />
+                <circle cx="79" cy="40" r="4.5" fill="#ffb3c6" opacity="0.7" />
+              </motion.g>
+            </motion.g>
+
+            {/* ── ARMS ── */}
+            {!showLetterPose && (
+              <>
+                {/* left arm rests at the side; holds the little bouquet while gifting */}
+                <motion.path d="M 60 76 Q 47 88 42 100" {...strokeProps(7)} />
+                {phase === 'gift' && bouquetCount < TOTAL_BOUQUETS && (
+                  <motion.g
+                    key={bouquetCount}
+                    initial={{ scale: 0.4, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ type: 'spring', bounce: 0.5, duration: 0.5 }}
+                    style={{ transformBox: 'view-box', transformOrigin: '40px 104px' }}
+                  >
+                    <path d="M 34 108 L 40 94 L 46 108 Z" fill="#f5e3c2" stroke="#3d2438" strokeWidth="1.5" strokeLinejoin="round" />
+                    <circle cx="35" cy="90" r="4.5" fill="#ff4f7e" stroke="#3d2438" strokeWidth="1" />
+                    <circle cx="42" cy="86" r="4.5" fill="#ffd166" stroke="#3d2438" strokeWidth="1" />
+                    <circle cx="47" cy="92" r="4.5" fill="#ff8fae" stroke="#3d2438" strokeWidth="1" />
+                  </motion.g>
+                )}
+
+                {waving ? (
+                  /* waving: upper arm stays raised from the shoulder,
+                     the forearm swings around the ELBOW like a real wave */
+                  <motion.g
+                    animate={{ rotate: [0, -6, 0] }}
+                    transition={{ duration: 1.8, repeat: Infinity, repeatDelay: 1.1, ease: 'easeInOut' }}
+                    style={{ transformBox: 'view-box', transformOrigin: '60px 76px' }}
+                  >
+                    {/* upper arm: shoulder → elbow */}
+                    <motion.path d="M 60 76 L 82 62" {...strokeProps(8)} />
+                    {/* forearm pivoting at the elbow */}
+                    <motion.g
+                      animate={{ rotate: [0, -32, 12, -32, 12, 0] }}
+                      transition={{ duration: 1.8, repeat: Infinity, repeatDelay: 1.1, ease: 'easeInOut' }}
+                      style={{ transformBox: 'view-box', transformOrigin: '82px 62px' }}
+                    >
+                      <motion.path d="M 82 62 Q 86 52 88 44" {...strokeProps(9)} />
+                      <motion.circle cx="88.5" cy="42" r="3.6" fill="#3d2438" initial={{ opacity: 0 }} animate={{ opacity: drawn ? 1 : 0 }} transition={{ delay: drawn ? 1.6 : 0 }} />
+                    </motion.g>
+                  </motion.g>
+                ) : (
+                  /* resting right arm; flings up joyfully on each tap */
+                  <motion.g
+                    animate={armFlingControls}
+                    style={{ transformBox: 'view-box', transformOrigin: '60px 76px' }}
+                  >
+                    <motion.path
+                      d="M 60 76 Q 73 88 78 100"
+                      fill="none" stroke="#3d2438" strokeWidth="5" strokeLinecap="round"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: drawn ? 1 : 0 }}
+                      transition={{ duration: 0.3 }}
+                    />
+                  </motion.g>
+                )}
+              </>
+            )}
+
+            {/* letter pose: both arms forward holding the envelope */}
+            {showLetterPose && (
+              <>
+                <path d="M 60 76 Q 52 92 54 104" fill="none" stroke="#3d2438" strokeWidth="5" strokeLinecap="round" />
+                <path d="M 60 76 Q 68 92 66 104" fill="none" stroke="#3d2438" strokeWidth="5" strokeLinecap="round" />
+              </>
+            )}
+          </g>
+
+          {/* the envelope gift */}
+          {showLetterPose && (
+            <motion.g
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: 'spring', bounce: 0.55, duration: 0.9, delay: 0.3 }}
+              style={{ transformBox: 'view-box', transformOrigin: '60px 116px', cursor: 'pointer' }}
+              onClick={onEnvelopeTap}
+            >
+              <motion.g
+                animate={{ scale: [1, 1.07, 1] }}
+                transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
+                style={{ transformBox: 'view-box', transformOrigin: '60px 116px' }}
+              >
+                <rect x="36" y="100" width="48" height="32" rx="4" fill="#fffdf7" stroke="#3d2438" strokeWidth="3" />
+                <path d="M 36 103 L 60 121 L 84 103" fill="none" stroke="#3d2438" strokeWidth="2.2" strokeLinejoin="round" />
+                <path d="M 60 110 c -2.4 -4 -8 -2.4 -8 1.6 c 0 3.2 4.8 5.6 8 8 c 3.2 -2.4 8 -4.8 8 -8 c 0 -4 -5.6 -5.6 -8 -1.6 Z" fill="#ff4f7e" stroke="#3d2438" strokeWidth="1.1" />
+              </motion.g>
+            </motion.g>
+          )}
+        </motion.g>
+      </motion.g>
+    </motion.g>
+  )
+}
+
+// ------------------------------------------------------------
+// Main overlay — stays mounted after first visit so progress
 // is preserved; the replay button resets everything.
 // ------------------------------------------------------------
 export default function SorryPlanet({ active, onBack }) {
@@ -242,66 +420,69 @@ export default function SorryPlanet({ active, onBack }) {
   const [letterOpen, setLetterOpen] = useState(false)
   const [letterInstant, setLetterInstant] = useState(false)
   const [hasReadLetter, setHasReadLetter] = useState(false)
-  const doodleControls = useAnimationControls()
+  const [planetSize, setPlanetSize] = useState(getPlanetScreenSize)
+  const hopControls = useAnimationControls()
+  const armFlingControls = useAnimationControls()
   const milestoneTimer = useRef(null)
   const heartTimer = useRef(null)
 
   const at = useCallback(p => PHASE_ORDER[phase] >= PHASE_ORDER[p], [phase])
   const slots = useMemo(buildSlots, [])
 
-  // Interior + rim flowers on the planet face (dominant pink, colorful accents)
-  const planetFlora = useMemo(() => {
+  useEffect(() => {
+    const onResize = () => setPlanetSize(getPlanetScreenSize())
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
+
+  // Doodle sizing anchored to the 3D planet
+  const doodleW = Math.max(100, Math.min(160, planetSize * 0.62))
+  const doodleH = doodleW * (170 / 120)
+
+  // Rim flowers along the planet's horizon (viewBox is a constant
+  // mapping: planet radius = 142.8 units inside a 400-unit box)
+  const rimFlora = useMemo(() => {
     const pinks = ['#ff4f7e', '#ff6b9d', '#e8557f', '#ff8fae', '#ff85a1']
     const accents = ['#ffd166', '#ff8c61', '#7fd8a4', '#6ec6ff', '#fffdf7']
-    const inner = []
-    for (let i = 0; i < 30; i++) {
-      const ang = seeded(i * 3 + 1) * Math.PI * 2
-      const rad = 150 * Math.sqrt(seeded(i * 3 + 2)) * 0.86
-      const isPink = seeded(i * 3 + 3) < 0.7
-      inner.push({
-        x: 200 + Math.cos(ang) * rad,
-        y: 300 + Math.sin(ang) * rad,
-        size: 7 + seeded(i * 5 + 4) * 9,
-        color: isPink ? pinks[i % 5] : accents[i % 5],
-        type: i % 3,
-        rotation: seeded(i * 7 + 5) * 360,
-      })
-    }
     const rim = []
-    for (let i = 0; i < 9; i++) {
-      const deg = -158 + i * 16.5
+    for (let i = 0; i < 11; i++) {
+      const deg = -168 + i * 15.5
+      if (deg > -112 && deg < -68) continue // leave room for the doodle
       const ang = (deg * Math.PI) / 180
       const isPink = seeded(i * 11 + 6) < 0.65
       rim.push({
-        deg,
-        bx: 200 + Math.cos(ang) * 148,
-        by: 300 + Math.sin(ang) * 148,
-        tx: 200 + Math.cos(ang) * (166 + seeded(i * 13 + 7) * 12),
-        ty: 300 + Math.sin(ang) * (166 + seeded(i * 13 + 7) * 12),
+        bx: 200 + Math.cos(ang) * 140,
+        by: 200 + Math.sin(ang) * 140,
+        tx: 200 + Math.cos(ang) * (156 + seeded(i * 13 + 7) * 12),
+        ty: 200 + Math.sin(ang) * (156 + seeded(i * 13 + 7) * 12),
         size: 8 + seeded(i * 17 + 8) * 5,
         color: isPink ? pinks[i % 5] : accents[(i + 2) % 5],
         type: i % 3,
       })
     }
-    return { inner, rim }
+    return rim
   }, [])
 
   // Morph targets for each character of the welcome text
   const charTargets = useMemo(() => {
     const chars = WELCOME_TEXT.split('')
     const mid = (chars.length - 1) / 2
+    const H = typeof window !== 'undefined' ? window.innerHeight : 800
+    const headingY = H * 0.15
+    const doodleCenterY = H * 0.5 - planetSize / 2 - doodleH * 0.5
     return chars.map((c, i) => ({
       char: c,
       tx: (mid - i) * 15 + (seeded(i + 90) - 0.5) * 36,
-      ty: (typeof window !== 'undefined' ? window.innerHeight : 800) * 0.16 + (seeded(i + 110) - 0.5) * 44,
+      ty: (doodleCenterY - headingY) + (seeded(i + 110) - 0.5) * 44,
       rot: (seeded(i + 130) - 0.5) * 220,
     }))
-  }, [])
+  }, [planetSize, doodleH])
 
-  // Timeline: boot → welcome → morph → greet → gift
+  // Timeline: boot (waits for arrival) → welcome → morph → greet → gift
   useEffect(() => {
     if (phase === 'boot') {
-      const t = setTimeout(() => setPhase('welcome'), 1100)
+      if (!active) return
+      const t = setTimeout(() => setPhase('welcome'), 700)
       return () => clearTimeout(t)
     }
     if (phase === 'welcome') {
@@ -321,7 +502,7 @@ export default function SorryPlanet({ active, onBack }) {
       }, 6600)
       return () => { clearTimeout(a); clearTimeout(b) }
     }
-  }, [phase])
+  }, [phase, active])
 
   useEffect(() => () => {
     clearTimeout(milestoneTimer.current)
@@ -335,7 +516,11 @@ export default function SorryPlanet({ active, onBack }) {
     const n = id + 1
 
     setBouquets(prev => (prev.length >= TOTAL_BOUQUETS ? prev : [...prev, prev.length]))
-    doodleControls.start({ scale: [1, 1.13, 1], transition: { duration: 0.35 } })
+
+    // happy hop + joyful arm fling
+    hopControls.start({ y: [0, -13, 0], scaleY: [1, 1.05, 0.95, 1], transition: { duration: 0.45, ease: 'easeOut' } })
+    armFlingControls.start({ rotate: [0, -85, 0], transition: { duration: 0.55, ease: 'easeInOut' } })
+
     setHearts(h => [...h.slice(-4).filter(x => x.id !== id), { id }])
     clearTimeout(heartTimer.current)
     heartTimer.current = setTimeout(() => setHearts([]), 1300)
@@ -354,7 +539,7 @@ export default function SorryPlanet({ active, onBack }) {
     } else {
       setBubble(null)
     }
-  }, [phase, bouquets.length, doodleControls])
+  }, [phase, bouquets.length, hopControls, armFlingControls])
 
   const openLetter = useCallback(() => {
     setLetterInstant(false)
@@ -383,204 +568,95 @@ export default function SorryPlanet({ active, onBack }) {
     setPhase('boot')
   }, [])
 
-  const showLetterPose = at('letterOffer')
-  const doodleDrawn = at('morph')
+  const drawn = at('morph')
+  const planetTop = `calc(50% - ${planetSize / 2}px)`
 
   return (
     <div
       className="fixed inset-0 z-30 overflow-hidden"
       style={{
-        transform: active ? 'translateX(0)' : 'translateX(-100vw)',
-        transition: 'transform 1.15s cubic-bezier(0.65, 0, 0.35, 1)',
+        opacity: active ? 1 : 0,
+        visibility: active ? 'visible' : 'hidden',
+        transition: active
+          ? 'opacity 0.9s ease'
+          : 'opacity 0.5s ease, visibility 0s linear 0.5s',
         pointerEvents: active ? 'auto' : 'none',
       }}
     >
-      {/* soft glow behind the planet so it pops against the pink-purple atmosphere */}
-      <div className="sp-planet-glow" />
+      {/* soft glow hugging the 3D planet */}
+      <div
+        className="sp-planet-glow"
+        style={{ width: planetSize * 2, height: planetSize * 2 }}
+      />
 
-      {/* ── PLANET + DOODLE ── */}
-      <div className="sp-planet-wrap">
-        <motion.svg
-          viewBox="0 0 400 460"
-          className="w-full h-auto"
-          style={{ overflow: 'visible' }}
-          initial={{ scale: 0.6, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 1.4, ease: 'easeOut', delay: 0.4 }}
-        >
-          <defs>
-            <radialGradient id="sp-planet-grad" cx="42%" cy="34%" r="80%">
-              <stop offset="0%" stopColor="#fff0f4" />
-              <stop offset="45%" stopColor="#ffd3e0" />
-              <stop offset="100%" stopColor="#ffaac4" />
-            </radialGradient>
-          </defs>
+      {/* rim flowers peeking over the 3D planet's horizon */}
+      <motion.svg
+        viewBox="0 0 400 400"
+        className="sp-rim-flora"
+        style={{ width: planetSize * 1.4, height: planetSize * 1.4 }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: active ? 1 : 0 }}
+        transition={{ duration: 1.2, delay: 0.3 }}
+      >
+        {rimFlora.map((f, i) => (
+          <g key={`rim${i}`}>
+            <path d={`M ${f.bx} ${f.by} L ${f.tx} ${f.ty}`} stroke="#5a8a5e" strokeWidth="2.5" strokeLinecap="round" />
+            <PlanetFlower x={f.tx} y={f.ty} size={f.size} color={f.color} type={f.type} />
+          </g>
+        ))}
+      </motion.svg>
 
-          {/* rim flowers peeking over the horizon */}
-          {planetFlora.rim.map((f, i) => (
-            <g key={`rim${i}`}>
-              <path d={`M ${f.bx} ${f.by} L ${f.tx} ${f.ty}`} stroke="#5a8a5e" strokeWidth="2.5" strokeLinecap="round" />
-              <PlanetFlower x={f.tx} y={f.ty} size={f.size} color={f.color} type={f.type} />
-            </g>
-          ))}
-
-          {/* planet body */}
-          <circle cx="200" cy="300" r="150" fill="url(#sp-planet-grad)" stroke="#e0537f" strokeWidth="4" />
-          {/* lower shading for depth */}
-          <path d="M 68 360 A 150 150 0 0 0 332 360 A 190 170 0 0 1 68 360 Z" fill="rgba(216, 64, 120, 0.14)" />
-          {/* grass tufts along the top curve */}
-          {[-140, -115, -68, -40, -12].map((deg, i) => {
-            const ang = (deg * Math.PI) / 180
-            const gx = 200 + Math.cos(ang) * 147
-            const gy = 300 + Math.sin(ang) * 147
-            return (
-              <path
-                key={`grass${i}`}
-                d={`M ${gx - 5} ${gy + 3} Q ${gx - 3} ${gy - 7} ${gx - 1} ${gy + 2} M ${gx} ${gy + 2} Q ${gx + 2} ${gy - 9} ${gx + 4} ${gy + 1}`}
-                stroke="#6aa870" strokeWidth="2" fill="none" strokeLinecap="round"
-              />
-            )
-          })}
-          {/* interior flowers */}
-          {planetFlora.inner.map((f, i) => (
-            <PlanetFlower key={`in${i}`} {...f} />
-          ))}
-
-          {/* ── DOODLE RESIDENT ── */}
-          <motion.g animate={doodleControls} style={{ transformBox: 'view-box', transformOrigin: '200px 150px' }}>
-            <motion.g
-              animate={{ y: [0, -4, 0] }}
-              transition={{ duration: 3.2, repeat: Infinity, ease: 'easeInOut' }}
-            >
-              {/* tap hint ring before the first bouquet */}
-              {phase === 'gift' && bouquets.length === 0 && (
-                <motion.circle
-                  cx="200" cy="85" r="66" fill="none" stroke="#ff5c8a" strokeWidth="2.5"
-                  style={{ transformBox: 'view-box', transformOrigin: '200px 85px' }}
-                  animate={{ scale: [0.82, 1.22], opacity: [0.55, 0] }}
-                  transition={{ duration: 1.6, repeat: Infinity, ease: 'easeOut' }}
-                />
-              )}
-
-              <g
-                onClick={handleDoodleTap}
-                style={{ cursor: phase === 'gift' ? 'pointer' : 'default' }}
-              >
-                {/* generous invisible hit area for tapping */}
-                <circle cx="200" cy="85" r="82" fill="transparent" />
-
-                {/* body strokes draw themselves in during the morph */}
-                {[
-                  { el: 'circle', cx: 200, cy: 52, r: 30 },
-                  { d: 'M 188 24 Q 192 12 200 16' },
-                  { d: 'M 202 22 Q 208 10 214 18' },
-                  { d: 'M 200 82 Q 197 102 200 122' },
-                  { d: 'M 200 122 Q 194 138 189 150' },
-                  { d: 'M 200 122 Q 206 138 211 150' },
-                  { d: 'M 189 150 Q 184 152 180 151' },
-                  { d: 'M 211 150 Q 216 152 220 151' },
-                ].map((s, i) => {
-                  const common = {
-                    fill: 'none',
-                    stroke: '#3d2438',
-                    strokeWidth: 5,
-                    strokeLinecap: 'round',
-                    initial: { pathLength: 0, opacity: 0 },
-                    animate: doodleDrawn ? { pathLength: 1, opacity: 1 } : { pathLength: 0, opacity: 0 },
-                    transition: { duration: 0.55, delay: doodleDrawn ? 0.5 + i * 0.14 : 0, ease: 'easeInOut' },
-                  }
-                  return s.el === 'circle'
-                    ? <motion.circle key={i} cx={s.cx} cy={s.cy} r={s.r} {...common} fill="#fff8fa" />
-                    : <motion.path key={i} d={s.d} {...common} />
-                })}
-
-                {/* face fades in after the strokes */}
-                <motion.g
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: doodleDrawn ? 1 : 0 }}
-                  transition={{ duration: 0.6, delay: doodleDrawn ? 1.8 : 0 }}
-                >
-                  <path d="M 186 48 Q 191 53 196 48" fill="none" stroke="#3d2438" strokeWidth="3.5" strokeLinecap="round" />
-                  <path d="M 204 48 Q 209 53 214 48" fill="none" stroke="#3d2438" strokeWidth="3.5" strokeLinecap="round" />
-                  <path d="M 191 62 Q 200 70 209 62" fill="none" stroke="#3d2438" strokeWidth="3.5" strokeLinecap="round" />
-                  <circle cx="178" cy="59" r="5" fill="#ffb3c6" opacity="0.7" />
-                  <circle cx="222" cy="59" r="5" fill="#ffb3c6" opacity="0.7" />
-                </motion.g>
-
-                {/* normal pose: left arm + waving right arm */}
-                {!showLetterPose && (
-                  <>
-                    <motion.path
-                      d="M 200 95 Q 186 106 176 114"
-                      fill="none" stroke="#3d2438" strokeWidth="5" strokeLinecap="round"
-                      initial={{ pathLength: 0, opacity: 0 }}
-                      animate={doodleDrawn ? { pathLength: 1, opacity: 1 } : { pathLength: 0, opacity: 0 }}
-                      transition={{ duration: 0.5, delay: doodleDrawn ? 1.3 : 0 }}
-                    />
-                    {/* small bouquet in hand while gifting */}
-                    {phase === 'gift' && bouquets.length < TOTAL_BOUQUETS && (
-                      <motion.g
-                        key={bouquets.length}
-                        initial={{ scale: 0.4, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        transition={{ type: 'spring', bounce: 0.5, duration: 0.5 }}
-                        style={{ transformBox: 'view-box', transformOrigin: '172px 118px' }}
-                      >
-                        <path d="M 166 122 L 172 108 L 178 122 Z" fill="#f5e3c2" stroke="#3d2438" strokeWidth="1.5" strokeLinejoin="round" />
-                        <circle cx="167" cy="104" r="4.5" fill="#ff4f7e" stroke="#3d2438" strokeWidth="1" />
-                        <circle cx="174" cy="100" r="4.5" fill="#ffd166" stroke="#3d2438" strokeWidth="1" />
-                        <circle cx="179" cy="106" r="4.5" fill="#ff8fae" stroke="#3d2438" strokeWidth="1" />
-                      </motion.g>
-                    )}
-                    <motion.g
-                      style={{ transformBox: 'view-box', transformOrigin: '200px 95px' }}
-                      animate={at('greet') ? { rotate: [0, -16, 6, -16, 0] } : { rotate: 0 }}
-                      transition={at('greet') ? { duration: 1.6, repeat: Infinity, repeatDelay: 1.4, ease: 'easeInOut' } : {}}
-                    >
-                      <motion.path
-                        d="M 200 95 Q 214 90 226 76 Q 230 71 234 66"
-                        fill="none" stroke="#3d2438" strokeWidth="5" strokeLinecap="round"
-                        initial={{ pathLength: 0, opacity: 0 }}
-                        animate={doodleDrawn ? { pathLength: 1, opacity: 1 } : { pathLength: 0, opacity: 0 }}
-                        transition={{ duration: 0.5, delay: doodleDrawn ? 1.45 : 0 }}
-                      />
-                    </motion.g>
-                  </>
-                )}
-
-                {/* letter pose: both arms forward holding the envelope */}
-                {showLetterPose && (
-                  <>
-                    <path d="M 200 95 Q 188 112 191 124" fill="none" stroke="#3d2438" strokeWidth="5" strokeLinecap="round" />
-                    <path d="M 200 95 Q 212 112 209 124" fill="none" stroke="#3d2438" strokeWidth="5" strokeLinecap="round" />
-                  </>
-                )}
-              </g>
-
-              {/* the envelope gift */}
-              {showLetterPose && (
-                <motion.g
-                  initial={{ scale: 0, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ type: 'spring', bounce: 0.55, duration: 0.9, delay: 0.3 }}
-                  style={{ transformBox: 'view-box', transformOrigin: '200px 140px', cursor: 'pointer' }}
-                  onClick={openLetter}
-                >
-                  <motion.g
-                    animate={{ scale: [1, 1.07, 1] }}
-                    transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
-                    style={{ transformBox: 'view-box', transformOrigin: '200px 140px' }}
-                  >
-                    <rect x="170" y="120" width="60" height="40" rx="5" fill="#fffdf7" stroke="#3d2438" strokeWidth="3" />
-                    <path d="M 170 124 L 200 146 L 230 124" fill="none" stroke="#3d2438" strokeWidth="2.5" strokeLinejoin="round" />
-                    <path d="M 200 132 c -3 -5 -10 -3 -10 2 c 0 4 6 7 10 10 c 4 -3 10 -6 10 -10 c 0 -5 -7 -7 -10 -2 Z" fill="#ff4f7e" stroke="#3d2438" strokeWidth="1.2" />
-                  </motion.g>
-                </motion.g>
-              )}
-            </motion.g>
-          </motion.g>
-        </motion.svg>
+      {/* ── THE DOODLE RESIDENT standing on the planet ── */}
+      <div
+        style={{
+          position: 'absolute',
+          left: '50%',
+          top: planetTop,
+          width: doodleW,
+          height: doodleH,
+          marginLeft: -doodleW / 2,
+          marginTop: -doodleH + 8,
+          zIndex: 5,
+        }}
+      >
+        <svg viewBox="0 0 120 170" width="100%" height="100%" style={{ overflow: 'visible' }}>
+          {/* tap hint ring until the flow is learned */}
+          {phase === 'gift' && bouquets.length < 3 && (
+            <motion.circle
+              cx="60" cy="80" r="70" fill="none" stroke="#ff5c8a" strokeWidth="2.5"
+              style={{ transformBox: 'view-box', transformOrigin: '60px 80px' }}
+              animate={{ scale: [0.85, 1.25], opacity: [0.55, 0] }}
+              transition={{ duration: 1.6, repeat: Infinity, ease: 'easeOut' }}
+            />
+          )}
+          <Doodle
+            phase={phase}
+            at={at}
+            drawn={drawn}
+            bouquetCount={bouquets.length}
+            hopControls={hopControls}
+            armFlingControls={armFlingControls}
+            onTap={handleDoodleTap}
+            onEnvelopeTap={openLetter}
+          />
+        </svg>
       </div>
+
+      {/* clear tap invitation so she knows the doodle is pressable */}
+      <AnimatePresence>
+        {phase === 'gift' && bouquets.length < 3 && !letterOpen && (
+          <motion.div
+            key="tap-hint"
+            className="sp-tap-hint"
+            style={{ top: `calc(50% - ${planetSize / 2 + doodleH + 46}px)` }}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+          >
+            👇 tap me for a gift!
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── WELCOME TEXT → morphs into the doodle ── */}
       {(phase === 'welcome' || phase === 'morph') && (
@@ -601,18 +677,22 @@ export default function SorryPlanet({ active, onBack }) {
                   : { duration: 1.6, delay: i * 0.04, ease: 'easeInOut' }
               }
             >
-              {c.char === ' ' ? ' ' : c.char}
+              {c.char === ' ' ? ' ' : c.char}
             </motion.span>
           ))}
         </div>
       )}
 
-      {/* ── SPEECH BUBBLE ── */}
+      {/* ── SPEECH BUBBLE next to the doodle's head ── */}
       <AnimatePresence mode="wait">
         {bubble && !letterOpen && (
           <motion.div
             key={bubble}
             className="sp-bubble"
+            style={{
+              left: `calc(50% + ${doodleW * 0.42}px)`,
+              top: `calc(50% - ${planetSize / 2 + doodleH * 1.02}px)`,
+            }}
             initial={{ opacity: 0, scale: 0.7, y: 12 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.8, y: -8 }}
@@ -638,21 +718,22 @@ export default function SorryPlanet({ active, onBack }) {
       {/* ── COLLECTED BOUQUETS framing the screen ── */}
       {bouquets.map(id => {
         const slot = slots[id]
+        const size = slotSize(slot.sizeSeed)
         return (
           <motion.div
             key={id}
             className="fixed pointer-events-none"
             style={{
               zIndex: 35,
-              marginLeft: -slot.size / 2,
-              marginTop: -slot.size * 0.65,
+              marginLeft: -size / 2,
+              marginTop: -size * 0.65,
               filter: 'drop-shadow(0 4px 10px rgba(216, 64, 120, 0.25))',
             }}
-            initial={{ left: '50%', top: '30%', scale: 0.15, opacity: 0, rotate: 0 }}
+            initial={{ left: '50%', top: '28%', scale: 0.15, opacity: 0, rotate: 0 }}
             animate={{ left: `${slot.x}%`, top: `${slot.y}%`, scale: 1, opacity: 1, rotate: slot.rot }}
             transition={{ type: 'spring', stiffness: 55, damping: 13, mass: 0.9 }}
           >
-            <BouquetSVG seed={id} size={slot.size} />
+            <BouquetSVG seed={id} size={size} />
           </motion.div>
         )
       })}
@@ -663,7 +744,7 @@ export default function SorryPlanet({ active, onBack }) {
           <motion.div
             key={h.id}
             className="fixed pointer-events-none text-2xl"
-            style={{ left: '50%', top: '26%', zIndex: 36 }}
+            style={{ left: '50%', top: `calc(50% - ${planetSize / 2 + doodleH}px)`, zIndex: 36 }}
             initial={{ opacity: 1, y: 0, x: (seeded(h.id + 200) - 0.5) * 90, scale: 0.6 }}
             animate={{ opacity: 0, y: -70, scale: 1.15 }}
             exit={{ opacity: 0 }}

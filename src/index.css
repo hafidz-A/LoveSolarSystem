@@ -1016,14 +1016,9 @@ body {
    SORRY PLANET
    ============================================================ */
 
-/* Slider wrapper for the card planet (canvas + orbit cards).
-   Being a transformed fixed container, its fixed children anchor to it. */
-.planet-slider {
-  position: fixed;
-  inset: 0;
-  z-index: 10;
+/* Fade layer for the orbit cards while visiting the Sorry Planet */
+.card-planet-layer {
   pointer-events: none;
-  transition: transform 1.15s cubic-bezier(0.65, 0, 0.35, 1);
 }
 
 /* Navigation arrows between planets */
@@ -1085,27 +1080,51 @@ body {
   text-shadow: 0 1px 6px rgba(255, 255, 255, 0.8);
 }
 
-/* Planet placement + glow */
-.sp-planet-wrap {
-  position: absolute;
-  left: 50%;
-  top: 56%;
-  transform: translate(-50%, -50%);
-  width: min(80vmin, 540px);
-  z-index: 2;
-}
-
+/* Glow + horizon flowers hugging the 3D planet at screen center */
 .sp-planet-glow {
   position: absolute;
   left: 50%;
-  top: 62%;
+  top: 50%;
   transform: translate(-50%, -50%);
-  width: min(72vmin, 500px);
-  height: min(72vmin, 500px);
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.85) 0%, rgba(255, 226, 238, 0.5) 45%, transparent 70%);
+  background: radial-gradient(circle, rgba(255, 214, 230, 0.55) 0%, rgba(255, 190, 214, 0.3) 45%, transparent 70%);
   z-index: 1;
   pointer-events: none;
+}
+
+.sp-rim-flora {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 4;
+  pointer-events: none;
+  overflow: visible;
+}
+
+/* Bouncing "tap me" invitation */
+.sp-tap-hint {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 6;
+  padding: 7px 16px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 2px solid #ff5c8a;
+  color: #d0426e;
+  font-family: var(--font-family-hand);
+  font-size: 1.1rem;
+  font-weight: 700;
+  white-space: nowrap;
+  box-shadow: 0 6px 18px rgba(216, 64, 120, 0.22);
+  animation: tapHintBounce 1.2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes tapHintBounce {
+  0%, 100% { margin-top: 0; }
+  50% { margin-top: -10px; }
 }
 
 /* Welcome heading */
@@ -1125,12 +1144,10 @@ body {
   pointer-events: none;
 }
 
-/* Speech bubble */
+/* Speech bubble (positioned inline, anchored to the doodle's head) */
 .sp-bubble {
   position: absolute;
-  left: 55%;
-  top: 12%;
-  max-width: min(60vw, 250px);
+  max-width: min(46vw, 250px);
   background: rgba(255, 255, 255, 0.92);
   border: 2px solid #3d2438;
   border-radius: 18px;
@@ -1155,14 +1172,6 @@ body {
   border-right: 2px solid #3d2438;
   border-bottom: 2px solid #3d2438;
   transform: rotate(45deg) skew(8deg, 8deg);
-}
-
-@media (max-width: 640px) {
-  .sp-bubble {
-    left: 50%;
-    transform: translateX(-12%);
-    top: 9%;
-  }
 }
 
 /* The handwritten letter */
