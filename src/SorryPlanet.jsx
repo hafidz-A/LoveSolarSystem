@@ -244,7 +244,7 @@ function slotSize(sizeSeed) {
 // blinking, swaying, breathing bob, an elbow-pivot wave,
 // a happy hop + arm fling on every tap.
 // ------------------------------------------------------------
-function Doodle({ phase, at, drawn, bouquetCount, hopControls, armFlingControls, onTap, onEnvelopeTap }) {
+function Doodle({ phase, at, drawn, bouquetCount, hopControls, onTap, onEnvelopeTap }) {
   const showLetterPose = at('letterOffer')
   const waving = phase === 'greet' || phase === 'morph'
 
@@ -332,32 +332,51 @@ function Doodle({ phase, at, drawn, bouquetCount, hopControls, armFlingControls,
                 )}
 
                 {waving ? (
-                  /* waving: the whole arm stays in one piece — the elbow
-                     sits wide of the head so the swinging forearm and hand
-                     never pass behind or get cut off by other body parts.
-                     The swing only starts once every stroke is fully drawn. */
-                  <motion.g
-                    animate={phase === 'greet' ? { rotate: [0, -4, 0] } : { rotate: 0 }}
-                    transition={{ duration: 2.2, repeat: Infinity, repeatDelay: 1.3, ease: 'easeInOut' }}
-                    style={{ transformBox: 'view-box', transformOrigin: '60px 76px' }}
-                  >
+                  /* waving: native SVG animateTransform with the pivot
+                     written explicitly in viewBox coords — the shoulder
+                     rotates around (60,76) and the forearm+hand around the
+                     elbow (88,64), so upper arm and forearm can never
+                     separate. The swing only starts in the greet phase,
+                     after every stroke is fully drawn. */
+                  <g>
+                    {phase === 'greet' && (
+                      <animateTransform
+                        attributeName="transform"
+                        type="rotate"
+                        values="0 60 76; -4 60 76; -4 60 76; 0 60 76; 0 60 76"
+                        keyTimes="0; 0.15; 0.6; 0.75; 1"
+                        calcMode="spline"
+                        keySplines="0.45 0 0.55 1; 0.45 0 0.55 1; 0.45 0 0.55 1; 0.45 0 0.55 1"
+                        dur="3.6s"
+                        repeatCount="indefinite"
+                      />
+                    )}
                     {/* upper arm: shoulder → elbow, held wide of the head */}
                     <motion.path d="M 60 76 L 88 64" {...strokeProps(8)} />
                     {/* forearm + hand pivoting together at the elbow */}
-                    <motion.g
-                      animate={phase === 'greet' ? { rotate: [0, -18, 16, -18, 16, 0] } : { rotate: 0 }}
-                      transition={{ duration: 2.2, repeat: Infinity, repeatDelay: 1.3, ease: 'easeInOut' }}
-                      style={{ transformBox: 'view-box', transformOrigin: '88px 64px' }}
-                    >
+                    <g>
+                      {phase === 'greet' && (
+                        <animateTransform
+                          attributeName="transform"
+                          type="rotate"
+                          values="0 88 64; -20 88 64; 14 88 64; -20 88 64; 14 88 64; 0 88 64; 0 88 64"
+                          keyTimes="0; 0.13; 0.26; 0.39; 0.52; 0.68; 1"
+                          calcMode="spline"
+                          keySplines="0.45 0 0.55 1; 0.45 0 0.55 1; 0.45 0 0.55 1; 0.45 0 0.55 1; 0.45 0 0.55 1; 0.45 0 0.55 1"
+                          dur="3.6s"
+                          repeatCount="indefinite"
+                        />
+                      )}
                       <motion.path d="M 88 64 Q 93 53 96 45" {...strokeProps(9)} />
                       <motion.circle cx="96.5" cy="43" r="3.6" fill="#3d2438" initial={{ opacity: 0 }} animate={{ opacity: drawn ? 1 : 0 }} transition={{ delay: drawn ? 1.6 : 0 }} />
-                    </motion.g>
-                  </motion.g>
+                    </g>
+                  </g>
                 ) : (
-                  /* resting right arm; flings up joyfully on each tap */
-                  <motion.g
-                    animate={armFlingControls}
-                    style={{ transformBox: 'view-box', transformOrigin: '60px 76px' }}
+                  /* resting right arm; flings up joyfully on each tap —
+                     CSS rotation pinned to the shoulder so it stays attached */
+                  <g
+                    key={`fling-${bouquetCount}`}
+                    className={phase === 'gift' && bouquetCount > 0 ? 'sp-arm-fling' : undefined}
                   >
                     <motion.path
                       d="M 60 76 Q 73 88 78 100"
@@ -366,7 +385,7 @@ function Doodle({ phase, at, drawn, bouquetCount, hopControls, armFlingControls,
                       animate={{ opacity: drawn ? 1 : 0 }}
                       transition={{ duration: 0.3 }}
                     />
-                  </motion.g>
+                  </g>
                 )}
               </>
             )}
@@ -420,7 +439,6 @@ export default function SorryPlanet({ active, onBack }) {
   const [hasReadLetter, setHasReadLetter] = useState(false)
   const [planetSize, setPlanetSize] = useState(getPlanetScreenSize)
   const hopControls = useAnimationControls()
-  const armFlingControls = useAnimationControls()
   const milestoneTimer = useRef(null)
   const heartTimer = useRef(null)
   // ids of bouquets whose landing spring already finished — they render
@@ -520,7 +538,6 @@ export default function SorryPlanet({ active, onBack }) {
 
     // happy hop + joyful arm fling
     hopControls.start({ y: [0, -13, 0], scaleY: [1, 1.05, 0.95, 1], transition: { duration: 0.45, ease: 'easeOut' } })
-    armFlingControls.start({ rotate: [0, -85, 0], transition: { duration: 0.55, ease: 'easeInOut' } })
 
     setHearts(h => [...h.slice(-4).filter(x => x.id !== id), { id }])
     clearTimeout(heartTimer.current)
@@ -540,7 +557,7 @@ export default function SorryPlanet({ active, onBack }) {
     } else {
       setBubble(null)
     }
-  }, [phase, bouquets.length, hopControls, armFlingControls])
+  }, [phase, bouquets.length, hopControls])
 
   const openLetter = useCallback(() => {
     setLetterInstant(false)
@@ -637,7 +654,6 @@ export default function SorryPlanet({ active, onBack }) {
             drawn={drawn}
             bouquetCount={bouquets.length}
             hopControls={hopControls}
-            armFlingControls={armFlingControls}
             onTap={handleDoodleTap}
             onEnvelopeTap={openLetter}
           />
