@@ -423,6 +423,9 @@ export default function SorryPlanet({ active, onBack }) {
   const armFlingControls = useAnimationControls()
   const milestoneTimer = useRef(null)
   const heartTimer = useRef(null)
+  // ids of bouquets whose landing spring already finished — they render
+  // statically afterwards instead of re-running the flight animation
+  const landedRef = useRef(new Set())
 
   const at = useCallback(p => PHASE_ORDER[phase] >= PHASE_ORDER[p], [phase])
   const slots = useMemo(buildSlots, [])
@@ -558,6 +561,7 @@ export default function SorryPlanet({ active, onBack }) {
   const replay = useCallback(() => {
     clearTimeout(milestoneTimer.current)
     clearTimeout(heartTimer.current)
+    landedRef.current.clear()
     setBouquets([])
     setHearts([])
     setBubble(null)
@@ -713,28 +717,39 @@ export default function SorryPlanet({ active, onBack }) {
         )}
       </AnimatePresence>
 
-      {/* ── COLLECTED BOUQUETS framing the screen ── */}
-      {bouquets.map(id => {
-        const slot = slots[id]
-        const size = slotSize(slot.sizeSeed)
-        return (
-          <motion.div
-            key={id}
-            className="fixed pointer-events-none"
-            style={{
-              zIndex: 35,
-              marginLeft: -size / 2,
-              marginTop: -size * 0.65,
-              filter: 'drop-shadow(0 4px 10px rgba(216, 64, 120, 0.25))',
-            }}
-            initial={{ left: '50%', top: '28%', scale: 0.15, opacity: 0, rotate: 0 }}
-            animate={{ left: `${slot.x}%`, top: `${slot.y}%`, scale: 1, opacity: 1, rotate: slot.rot }}
-            transition={{ type: 'spring', stiffness: 55, damping: 13, mass: 0.9 }}
-          >
-            <BouquetSVG seed={id} size={size} />
-          </motion.div>
-        )
-      })}
+      {/* ── COLLECTED BOUQUETS framing the screen ──
+          Perf: flight is transform-only (no left/top layout thrash, no
+          per-bouquet drop-shadow filter layers), bouquets that already
+          landed render statically, and the whole layer stops painting
+          while the letter is open. */}
+      <div style={{ visibility: letterOpen ? 'hidden' : 'visible' }}>
+        {bouquets.map(id => {
+          const slot = slots[id]
+          const size = slotSize(slot.sizeSeed)
+          const landed = landedRef.current.has(id)
+          const dx = ((50 - slot.x) / 100) * window.innerWidth
+          const dy = ((28 - slot.y) / 100) * window.innerHeight
+          return (
+            <motion.div
+              key={id}
+              className="fixed pointer-events-none"
+              style={{
+                zIndex: 35,
+                left: `${slot.x}%`,
+                top: `${slot.y}%`,
+                marginLeft: -size / 2,
+                marginTop: -size * 0.65,
+              }}
+              initial={landed ? false : { x: dx, y: dy, scale: 0.15, opacity: 0, rotate: 0 }}
+              animate={{ x: 0, y: 0, scale: 1, opacity: 1, rotate: slot.rot }}
+              transition={landed ? { duration: 0 } : { type: 'spring', stiffness: 55, damping: 13, mass: 0.9 }}
+              onAnimationComplete={() => landedRef.current.add(id)}
+            >
+              <BouquetSVG seed={id} size={size} />
+            </motion.div>
+          )
+        })}
+      </div>
 
       {/* little hearts popping on each tap */}
       <AnimatePresence>
@@ -781,15 +796,12 @@ export default function SorryPlanet({ active, onBack }) {
                       const delay = 1.0 + gi * 0.05
                       gi += 1
                       if (letterInstant) return <span key={`i${ci}`}>{ch}</span>
+                      // plain CSS animation — hundreds of JS-driven spans
+                      // made low-end phones stutter
                       return (
-                        <motion.span
-                          key={ci}
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          transition={{ delay, duration: 0.14 }}
-                        >
+                        <span key={ci} className="sp-letter-ch" style={{ animationDelay: `${delay}s` }}>
                           {ch}
-                        </motion.span>
+                        </span>
                       )
                     })}
                   </p>
@@ -799,14 +811,12 @@ export default function SorryPlanet({ active, onBack }) {
               {letterInstant ? (
                 <p className="sp-letter-sign">{LETTER_SIGNATURE}</p>
               ) : (
-                <motion.p
-                  className="sp-letter-sign"
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 1.0 + (LETTER_PARAGRAPHS.join('').length) * 0.05 + 0.7, duration: 1.2 }}
+                <p
+                  className="sp-letter-sign sp-letter-sign-anim"
+                  style={{ animationDelay: `${1.0 + (LETTER_PARAGRAPHS.join('').length) * 0.05 + 0.7}s` }}
                 >
                   {LETTER_SIGNATURE}
-                </motion.p>
+                </p>
               )}
 
               {!letterInstant && <span className="sp-letter-hint">tap the letter to finish writing ✎</span>}

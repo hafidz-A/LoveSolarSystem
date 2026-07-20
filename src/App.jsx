@@ -2497,6 +2497,8 @@ export default function App() {
       <Canvas
         className="!fixed inset-0 z-10"
         camera={{ position: [0, 0, CAMERA_Z], fov: CAMERA_FOV }}
+        dpr={[1, 1.5]}
+        gl={{ powerPreference: 'high-performance' }}
         style={{ pointerEvents: 'none' }}
       >
         <SceneLighting scene={scene} />

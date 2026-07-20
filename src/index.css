@@ -157,6 +157,15 @@ body {
   animation: drift 25s ease-in-out infinite alternate;
 }
 
+/* Phones: a huge blur that also drifts re-blurs every frame — keep the
+   blobs but freeze them and soften the blur so they rasterize once */
+@media (max-width: 768px), (pointer: coarse) {
+  .bg-blob {
+    filter: blur(48px);
+    animation: none;
+  }
+}
+
 @keyframes drift {
   0% { transform: translate(0, 0) scale(1) rotate(0deg); }
   50% { transform: translate(60px, 40px) scale(1.15) rotate(180deg); }
@@ -1078,6 +1087,21 @@ body {
   font-weight: 600;
   color: #b03060;
   text-shadow: 0 1px 6px rgba(255, 255, 255, 0.8);
+}
+
+/* Handwritten-letter reveal — cheap CSS opacity animation per glyph */
+.sp-letter-ch {
+  opacity: 0;
+  animation: sp-ch-in 0.35s ease forwards;
+}
+
+.sp-letter-sign-anim {
+  opacity: 0;
+  animation: sp-ch-in 1.2s ease forwards;
+}
+
+@keyframes sp-ch-in {
+  to { opacity: 1; }
 }
 
 /* Doodle blink: only the eye circle itself thins into a sliver and
