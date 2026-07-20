@@ -300,15 +300,11 @@ function Doodle({ phase, at, drawn, bouquetCount, hopControls, armFlingControls,
                 animate={{ opacity: drawn ? 1 : 0 }}
                 transition={{ duration: 0.6, delay: drawn ? 1.7 : 0 }}
               >
-                {/* blinking round eyes */}
-                <motion.g
-                  animate={{ scaleY: [1, 1, 0.08, 1, 1] }}
-                  transition={{ duration: 3.4, times: [0, 0.88, 0.93, 0.97, 1], repeat: Infinity }}
-                  style={{ transformBox: 'view-box', transformOrigin: '60px 31px' }}
-                >
-                  <circle cx="50" cy="31" r="3.4" fill="#3d2438" />
-                  <circle cx="70" cy="31" r="3.4" fill="#3d2438" />
-                </motion.g>
+                {/* blinking eyes — each round pupil thins into a sliver
+                    around its own center and rounds back out; pure CSS so
+                    nothing else on the face moves or shifts */}
+                <circle className="sp-eye" cx="50" cy="31" r="3.4" fill="#3d2438" />
+                <circle className="sp-eye" cx="70" cy="31" r="3.4" fill="#3d2438" />
                 <path d="M 52 44 Q 60 51 68 44" fill="none" stroke="#3d2438" strokeWidth="3.2" strokeLinecap="round" />
                 <circle cx="41" cy="40" r="4.5" fill="#ffb3c6" opacity="0.7" />
                 <circle cx="79" cy="40" r="4.5" fill="#ffb3c6" opacity="0.7" />
@@ -336,23 +332,25 @@ function Doodle({ phase, at, drawn, bouquetCount, hopControls, armFlingControls,
                 )}
 
                 {waving ? (
-                  /* waving: upper arm stays raised from the shoulder,
-                     the forearm swings around the ELBOW like a real wave */
+                  /* waving: the whole arm stays in one piece — the elbow
+                     sits wide of the head so the swinging forearm and hand
+                     never pass behind or get cut off by other body parts.
+                     The swing only starts once every stroke is fully drawn. */
                   <motion.g
-                    animate={{ rotate: [0, -6, 0] }}
-                    transition={{ duration: 1.8, repeat: Infinity, repeatDelay: 1.1, ease: 'easeInOut' }}
+                    animate={phase === 'greet' ? { rotate: [0, -4, 0] } : { rotate: 0 }}
+                    transition={{ duration: 2.2, repeat: Infinity, repeatDelay: 1.3, ease: 'easeInOut' }}
                     style={{ transformBox: 'view-box', transformOrigin: '60px 76px' }}
                   >
-                    {/* upper arm: shoulder → elbow */}
-                    <motion.path d="M 60 76 L 82 62" {...strokeProps(8)} />
-                    {/* forearm pivoting at the elbow */}
+                    {/* upper arm: shoulder → elbow, held wide of the head */}
+                    <motion.path d="M 60 76 L 88 64" {...strokeProps(8)} />
+                    {/* forearm + hand pivoting together at the elbow */}
                     <motion.g
-                      animate={{ rotate: [0, -32, 12, -32, 12, 0] }}
-                      transition={{ duration: 1.8, repeat: Infinity, repeatDelay: 1.1, ease: 'easeInOut' }}
-                      style={{ transformBox: 'view-box', transformOrigin: '82px 62px' }}
+                      animate={phase === 'greet' ? { rotate: [0, -18, 16, -18, 16, 0] } : { rotate: 0 }}
+                      transition={{ duration: 2.2, repeat: Infinity, repeatDelay: 1.3, ease: 'easeInOut' }}
+                      style={{ transformBox: 'view-box', transformOrigin: '88px 64px' }}
                     >
-                      <motion.path d="M 82 62 Q 86 52 88 44" {...strokeProps(9)} />
-                      <motion.circle cx="88.5" cy="42" r="3.6" fill="#3d2438" initial={{ opacity: 0 }} animate={{ opacity: drawn ? 1 : 0 }} transition={{ delay: drawn ? 1.6 : 0 }} />
+                      <motion.path d="M 88 64 Q 93 53 96 45" {...strokeProps(9)} />
+                      <motion.circle cx="96.5" cy="43" r="3.6" fill="#3d2438" initial={{ opacity: 0 }} animate={{ opacity: drawn ? 1 : 0 }} transition={{ delay: drawn ? 1.6 : 0 }} />
                     </motion.g>
                   </motion.g>
                 ) : (
@@ -486,20 +484,20 @@ export default function SorryPlanet({ active, onBack }) {
       return () => clearTimeout(t)
     }
     if (phase === 'welcome') {
-      const t = setTimeout(() => setPhase('morph'), 3700)
+      const t = setTimeout(() => setPhase('morph'), 6200)
       return () => clearTimeout(t)
     }
     if (phase === 'morph') {
-      const t = setTimeout(() => setPhase('greet'), 2800)
+      const t = setTimeout(() => setPhase('greet'), 4200)
       return () => clearTimeout(t)
     }
     if (phase === 'greet') {
       setBubble(MSG_HELLO)
-      const a = setTimeout(() => setBubble(MSG_LIVE), 2800)
+      const a = setTimeout(() => setBubble(MSG_LIVE), 4200)
       const b = setTimeout(() => {
         setBubble(MSG_GIFTS)
         setPhase('gift')
-      }, 6600)
+      }, 9800)
       return () => { clearTimeout(a); clearTimeout(b) }
     }
   }, [phase, active])
@@ -532,9 +530,9 @@ export default function SorryPlanet({ active, onBack }) {
         milestoneTimer.current = setTimeout(() => {
           setPhase('letterOffer')
           setBubble(MSG_LETTER)
-        }, 3200)
+        }, 5200)
       } else {
-        milestoneTimer.current = setTimeout(() => setBubble(null), 2400)
+        milestoneTimer.current = setTimeout(() => setBubble(null), 4200)
       }
     } else {
       setBubble(null)
@@ -553,7 +551,7 @@ export default function SorryPlanet({ active, onBack }) {
       setPhase('done')
       setBubble(MSG_AGAIN)
       clearTimeout(milestoneTimer.current)
-      milestoneTimer.current = setTimeout(() => setBubble(null), 4200)
+      milestoneTimer.current = setTimeout(() => setBubble(null), 6500)
     }
   }, [hasReadLetter])
 
@@ -673,8 +671,8 @@ export default function SorryPlanet({ active, onBack }) {
               }
               transition={
                 phase === 'welcome'
-                  ? { duration: 0.6, delay: 0.4 + i * 0.08, ease: 'easeOut' }
-                  : { duration: 1.6, delay: i * 0.04, ease: 'easeInOut' }
+                  ? { duration: 1.1, delay: 0.5 + i * 0.17, ease: 'easeOut' }
+                  : { duration: 2.4, delay: i * 0.06, ease: 'easeInOut' }
               }
             >
               {c.char === ' ' ? ' ' : c.char}
@@ -696,7 +694,7 @@ export default function SorryPlanet({ active, onBack }) {
             initial={{ opacity: 0, scale: 0.7, y: 12 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.8, y: -8 }}
-            transition={{ type: 'spring', bounce: 0.4, duration: 0.5 }}
+            transition={{ type: 'spring', bounce: 0.35, duration: 0.8 }}
           >
             {bubble.split(' ').map((w, i) => (
               <motion.span
@@ -705,7 +703,7 @@ export default function SorryPlanet({ active, onBack }) {
                 style={{ marginRight: '0.28em' }}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: 0.15 + i * 0.07, duration: 0.25 }}
+                transition={{ delay: 0.25 + i * 0.16, duration: 0.55 }}
               >
                 {w}
               </motion.span>
@@ -780,7 +778,7 @@ export default function SorryPlanet({ active, onBack }) {
                 return LETTER_PARAGRAPHS.map((para, pi) => (
                   <p key={pi} className="sp-letter-para">
                     {para.split('').map((ch, ci) => {
-                      const delay = 0.8 + gi * 0.022
+                      const delay = 1.0 + gi * 0.05
                       gi += 1
                       if (letterInstant) return <span key={`i${ci}`}>{ch}</span>
                       return (
@@ -788,7 +786,7 @@ export default function SorryPlanet({ active, onBack }) {
                           key={ci}
                           initial={{ opacity: 0 }}
                           animate={{ opacity: 1 }}
-                          transition={{ delay, duration: 0.06 }}
+                          transition={{ delay, duration: 0.14 }}
                         >
                           {ch}
                         </motion.span>
@@ -805,7 +803,7 @@ export default function SorryPlanet({ active, onBack }) {
                   className="sp-letter-sign"
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.8 + (LETTER_PARAGRAPHS.join('').length) * 0.022 + 0.5, duration: 0.9 }}
+                  transition={{ delay: 1.0 + (LETTER_PARAGRAPHS.join('').length) * 0.05 + 0.7, duration: 1.2 }}
                 >
                   {LETTER_SIGNATURE}
                 </motion.p>

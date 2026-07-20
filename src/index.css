@@ -1074,10 +1074,24 @@ body {
 
 .nav-arrow-label {
   font-family: var(--font-family-hand);
-  font-size: 0.95rem;
+  font-size: 1.3rem;
   font-weight: 600;
   color: #b03060;
   text-shadow: 0 1px 6px rgba(255, 255, 255, 0.8);
+}
+
+/* Doodle blink: only the eye circle itself thins into a sliver and
+   rounds back — squashed around its own center, so it never shifts */
+.sp-eye {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: sp-blink 4.6s ease-in-out infinite;
+}
+
+@keyframes sp-blink {
+  0%, 88%, 100% { transform: scaleY(1); }
+  93% { transform: scaleY(0.1); }
+  96% { transform: scaleY(1); }
 }
 
 /* Glow + horizon flowers hugging the 3D planet at screen center */
@@ -1108,13 +1122,13 @@ body {
   left: 50%;
   transform: translateX(-50%);
   z-index: 6;
-  padding: 7px 16px;
+  padding: 9px 20px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.9);
   border: 2px solid #ff5c8a;
   color: #d0426e;
   font-family: var(--font-family-hand);
-  font-size: 1.1rem;
+  font-size: 1.5rem;
   font-weight: 700;
   white-space: nowrap;
   box-shadow: 0 6px 18px rgba(216, 64, 120, 0.22);
@@ -1135,7 +1149,7 @@ body {
   width: 100%;
   text-align: center;
   font-family: var(--font-family-hand);
-  font-size: clamp(2rem, 6.5vw, 3.6rem);
+  font-size: clamp(2.6rem, 8.5vw, 4.8rem);
   font-weight: 700;
   color: #b03060;
   text-shadow: 0 2px 14px rgba(255, 255, 255, 0.9);
@@ -1147,13 +1161,13 @@ body {
 /* Speech bubble (positioned inline, anchored to the doodle's head) */
 .sp-bubble {
   position: absolute;
-  max-width: min(46vw, 250px);
+  max-width: min(58vw, 340px);
   background: rgba(255, 255, 255, 0.92);
   border: 2px solid #3d2438;
   border-radius: 18px;
-  padding: 10px 16px;
+  padding: 13px 20px;
   font-family: var(--font-family-hand);
-  font-size: 1.15rem;
+  font-size: 1.55rem;
   font-weight: 600;
   line-height: 1.35;
   color: #3d2438;
@@ -1177,7 +1191,7 @@ body {
 /* The handwritten letter */
 .sp-letter {
   position: relative;
-  width: min(88vw, 440px);
+  width: min(90vw, 520px);
   max-height: 78vh;
   overflow-y: auto;
   background:
@@ -1198,7 +1212,7 @@ body {
 }
 
 .sp-letter-para {
-  font-size: clamp(1.2rem, 2.8vmin, 1.45rem);
+  font-size: clamp(1.5rem, 3.5vmin, 1.85rem);
   font-weight: 500;
   line-height: 1.55;
   color: #5a3050;
@@ -1206,7 +1220,7 @@ body {
 }
 
 .sp-letter-sign {
-  font-size: clamp(1.35rem, 3.2vmin, 1.7rem);
+  font-size: clamp(1.7rem, 4vmin, 2.15rem);
   font-weight: 700;
   color: #b03060;
   text-align: right;
@@ -1217,7 +1231,7 @@ body {
 .sp-letter-hint {
   display: block;
   margin-top: 14px;
-  font-size: 0.95rem;
+  font-size: 1.15rem;
   color: rgba(90, 48, 80, 0.5);
   text-align: center;
 }
@@ -1259,7 +1273,7 @@ body {
   -webkit-backdrop-filter: blur(10px);
   color: #b03060;
   font-family: var(--font-family-hand);
-  font-size: 1rem;
+  font-size: 1.25rem;
   font-weight: 600;
   cursor: pointer;
   box-shadow: 0 6px 18px rgba(216, 64, 120, 0.15);
